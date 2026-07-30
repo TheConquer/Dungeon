@@ -63,6 +63,9 @@ frontend HARUS ada di sebelah `backend/`, bukan hanya `backend/` sendirian).
 
 ### Opsi A — Railway (dipakai di deployment saat ini)
 
+Service Railway sudah disambungkan ke repo GitHub `TheConquer/Dungeon` branch `main` — tiap
+`git push` ke `main` otomatis trigger deploy baru, tidak perlu `railway up` manual lagi.
+
 ```bash
 railway login
 railway init --name <nama-project>     # jalankan dari ROOT repo, bukan dari backend/
