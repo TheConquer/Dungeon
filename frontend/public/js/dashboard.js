@@ -1408,6 +1408,10 @@ document.querySelectorAll('#tabNav .tab-btn').forEach(btn=>{
     const target = document.getElementById('tab-'+btn.dataset.tab);
     target.style.display='block';
     playTabAnim(target);
+    // Chart.js yang dibuat sewaktu tab masih display:none salah ukur lebar canvas-nya
+    // (mengukur 0 atau ukuran lama) dan bisa memaksa halaman melebar di layar kecil.
+    // Chart.js secara default dengar event resize window untuk hitung ulang ukuran chart.
+    window.dispatchEvent(new Event('resize'));
     // Dipakai print CSS: saat tab Stiker Barcode aktif, header/KPI/tab-nav dashboard
     // disembunyikan khusus saat print supaya yang tercetak cuma lembar stiker, bukan
     // ikut ke-print jadi "halaman 1" yang tidak diinginkan.
@@ -1432,6 +1436,7 @@ document.querySelectorAll('.subtab-btn').forEach(btn=>{
     const target = document.getElementById('subtab-'+btn.dataset.subtab);
     target.style.display='block';
     playTabAnim(target);
+    window.dispatchEvent(new Event('resize'));
   });
 });
 

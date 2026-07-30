@@ -31,7 +31,7 @@
   .kpi{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;position:relative;overflow:hidden;box-shadow:var(--glow-sm);transition:transform .25s var(--ease),box-shadow .25s var(--ease),border-color .25s var(--ease);}
   .kpi:hover{transform:translateY(-3px);box-shadow:var(--glow-md);border-color:rgba(59,130,246,.4);}
   .kpi .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
-  .kpi .value{font-size:24px;font-weight:700;margin-top:6px;}
+  .kpi .value{font-size:24px;font-weight:700;margin-top:6px;overflow-wrap:anywhere;}
   .kpi .sub{font-size:11px;color:var(--muted);margin-top:2px;}
   .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;}
   .kpi.c-blue::before{background:var(--accent);box-shadow:0 0 10px var(--accent);}
@@ -43,14 +43,19 @@
 
   .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;}
   @media(max-width:1000px){.grid2{grid-template-columns:1fr;}}
-  .panel{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--glow-sm);transition:box-shadow .25s var(--ease),border-color .25s var(--ease);}
+  .panel{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--glow-sm);transition:box-shadow .25s var(--ease),border-color .25s var(--ease);
+    /* Grid/flex item default-nya min-width:auto (mengikuti lebar konten, mis. tabel lebar atau
+       canvas Chart.js) — ini bikin .panel menolak menyusut walau grid sudah collapse ke 1 kolom
+       di layar kecil, dan mendorong seluruh halaman melebar (horizontal overflow). min-width:0
+       mengizinkannya menyusut; overflow-x:auto pada .table-scroll/.chart-box yang urus sisanya. */
+    min-width:0;}
   .panel:hover{box-shadow:var(--glow-md);border-color:rgba(59,130,246,.22);}
   .panel h2{margin:0 0 12px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:space-between;}
   .panel h2 span.count{color:var(--muted);font-weight:400;font-size:12px;}
 
   .charts-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
   @media(max-width:1000px){.charts-row{grid-template-columns:1fr;}}
-  .chart-box{height:230px;position:relative;}
+  .chart-box{height:230px;position:relative;min-width:0;}
 
   .alert-list{display:flex;flex-direction:column;gap:8px;max-height:230px;overflow-y:auto;}
   .alert-item{background:var(--panel2);border:1px solid var(--border);border-left:2px solid var(--warn);border-radius:var(--radius);padding:8px 10px;font-size:12px;display:flex;justify-content:space-between;gap:8px;transition:transform .2s var(--ease),box-shadow .2s var(--ease);}
