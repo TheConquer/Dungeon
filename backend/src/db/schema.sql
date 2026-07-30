@@ -154,7 +154,11 @@ CREATE TABLE IF NOT EXISTS branch_requests (
   warna TEXT,
   kapasitas TEXT,
   qty INT NOT NULL DEFAULT 1,
-  customer_id TEXT REFERENCES customers(id),
+  -- Soft-link ke customers.id (bukan FK keras): frontend menyimpan customers dan branch_requests
+  -- lewat "bulk resync" terpisah (delete-semua lalu insert-ulang tiap ada perubahan, meniru
+  -- localStorage.setItem penuh di app lama) — FK keras di sini akan gagal saat customers
+  -- di-resync duluan. Sama seperti service_spareparts.used_by_unit_id.
+  customer_id TEXT,
   customer_nama TEXT,
   customer_hp TEXT,
   tanggal_permintaan DATE NOT NULL,
