@@ -54,7 +54,27 @@ Kalau kamu punya data asli (bukan cuma sample) di `Dashboard_Inventory_iPhone.ht
    Customer, Permintaan Unit DP, Unit Service internal/eksternal, Stiker Barcode) akan
    ditimpa dengan isi file backup, dalam satu transaksi database.
 
-## 4. Deploy ke Render
+## 4. Deploy
+
+Ada `package.json` di root repo (di luar `backend/`) khusus untuk platform deploy yang meng-clone
+seluruh repo lalu build dari root — supaya folder `frontend/` ikut terbawa bersama `backend/`
+(app.js men-serve frontend dari `../../frontend/public` relatif terhadap `backend/src`, jadi
+frontend HARUS ada di sebelah `backend/`, bukan hanya `backend/` sendirian).
+
+### Opsi A — Railway (dipakai di deployment saat ini)
+
+```bash
+railway login
+railway init --name <nama-project>     # jalankan dari ROOT repo, bukan dari backend/
+railway variable set "DATABASE_URL=<connection string Neon>"
+railway variable set "NODE_ENV=production"
+railway up --ci                        # jalankan dari ROOT repo juga
+railway domain                         # generate URL publik
+```
+Root `package.json` sudah punya script `postinstall` (install dependency `backend/`) dan `start`
+(`node backend/src/server.js`) — Railway otomatis pakai ini, tidak perlu setting tambahan.
+
+### Opsi B — Render
 
 1. Push project ini ke sebuah repo Git.
 2. Di Render, buat **Blueprint** baru dari repo tersebut (akan otomatis membaca `render.yaml`),
@@ -64,9 +84,11 @@ Kalau kamu punya data asli (bukan cuma sample) di `Dashboard_Inventory_iPhone.ht
    - Start Command: `node src/server.js`
 3. Set environment variable `DATABASE_URL` di Render ke connection string Neon (Render tidak
    boleh dibiarkan pakai database bawaan hosting — pastikan ini mengarah ke Neon).
-4. Setelah service pertama kali up, jalankan `npm run db:init` **sekali** (lewat Render Shell,
-   atau jalankan `node backend/src/db/init.js` dari komputer lokal dengan `DATABASE_URL` yang
-   sama) untuk membuat schema + seed awal.
+
+### Setelah deploy (kedua opsi)
+Jalankan `npm run db:init` **sekali saja** (dari `backend/`, lokal, dengan `DATABASE_URL` yang
+sama) untuk membuat schema + seed awal — tidak perlu diulang tiap deploy, karena datanya hidup
+di Neon, bukan di server aplikasi.
 
 ## Arsitektur Singkat
 

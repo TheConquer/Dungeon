@@ -1,0 +1,9 @@
+{
+  "name": "dashboard-inventory-iphone",
+  "private": true,
+  "description": "Root package.json khusus untuk platform deploy (mis. Railway) yang mem-build dari root repo — supaya frontend/ ikut ter-upload bersama backend/. Untuk dev sehari-hari tetap pakai backend/package.json (lihat README).",
+  "scripts": {
+    "postinstall": "npm install --prefix backend",
+    "start": "node backend/src/server.js"
+  }
+}
