@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Inventory Control - iPhone</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>📦 Dashboard Inventory Control — Unit, Dusbox, Aksesoris &amp; Sparepart</h1>
+      <p>Ringkasan stok unit iPhone, packaging, aksesoris, dan sparepart dalam satu dashboard</p>
+    </div>
+    <div class="badge-date" id="todayBadge"></div>
+  </header>
+
+  <div class="btn-row">
+    <button class="btn" id="btnExportInventory">⬇ Export Inventory (CSV)</button>
+    <button class="btn btn-outline" id="btnPrint">🖨 Cetak / Export PDF</button>
+  </div>
+
+  <div class="panel" style="margin-bottom:16px;">
+    <h2>🗂️ Ringkasan Gabungan Seluruh Kategori</h2>
+    <div class="kpi-grid" id="overviewKpiGrid" style="margin-bottom:0;"></div>
+  </div>
+
+  <div class="tab-nav" id="tabNav">
+    <button class="tab-btn active" data-tab="unit">📱 Unit iPhone</button>
+    <button class="tab-btn" data-tab="dusbox">📦 Dusbox</button>
+    <button class="tab-btn" data-tab="aksesoris">🔌 Aksesoris</button>
+    <button class="tab-btn" data-tab="sparepart">🔧 Sparepart</button>
+    <button class="tab-btn" data-tab="returklaim">🔄 Retur &amp; Klaim</button>
+    <button class="tab-btn" data-tab="import">📤 Import Data</button>
+    <button class="tab-btn" data-tab="service">🛠️ Unit Service</button>
+    <button class="tab-btn" data-tab="stiker">🏷️ Stiker Barcode</button>
+  </div>
+
+  <div class="tab-content" id="tab-unit">
+
+  <div class="subtab-nav" id="subtabNav">
+    <button class="subtab-btn active" data-subtab="ringkasan">📊 Ringkasan</button>
+    <button class="subtab-btn" data-subtab="fifoflash">🔥 FIFO &amp; Flash Sale</button>
+    <button class="subtab-btn" data-subtab="dataunit">📋 Data Unit</button>
+    <button class="subtab-btn" data-subtab="reportqc">✅ Report QC</button>
+    <button class="subtab-btn" data-subtab="supplychain">🚚 Supply Chain</button>
+    <button class="subtab-btn" data-subtab="analisis">📈 Analisis Lanjutan</button>
+    <button class="subtab-btn" data-subtab="unitdp">📋 Unit DP</button>
+  </div>
+
+  <div class="subtab-content" id="subtab-ringkasan">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>🔔 Notification Center <span class="count" id="notifCount"></span></h2>
+      <div id="notifList"></div>
+    </div>
+
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <div class="charts-row">
+      <div class="panel"><h2>Stok per Model</h2><div class="chart-box"><canvas id="chartModel"></canvas></div></div>
+      <div class="panel"><h2>Distribusi Status Unit</h2><div class="chart-box"><canvas id="chartStatus"></canvas></div></div>
+      <div class="panel"><h2>Stok per Cabang</h2><div class="chart-box"><canvas id="chartGudang"></canvas></div></div>
+    </div>
+  </div><!-- /subtab-ringkasan -->
+
+  <div class="subtab-content" id="subtab-fifoflash" style="display:none;">
+    <div class="grid2">
+      <div class="panel">
+        <h2>Report QC <span class="count" id="qcSummary"></span></h2>
+        <div class="chart-box" style="height:210px;"><canvas id="chartQC"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>🔥 Prioritas FIFO — Usia Stok Terlama <span class="count" id="fifoCount"></span></h2>
+        <div class="alert-list" id="fifoList" style="max-height:400px;"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>🏷️ Flash Sale — Tidak Bisa Diservice / Jual Minus <span class="count" id="flashsaleCount"></span></h2>
+      <p style="color:var(--muted);font-size:12px;margin:0 0 10px;">Unit Flash Sale bukan promo biasa — ini unit yang tidak layak diservice (kerusakan permanen) atau sengaja dijual di bawah modal untuk percepat perputaran stok. Dipisah per IMEI.</p>
+      <div class="alert-list" id="flashsaleList" style="max-height:320px;"></div>
+    </div>
+  </div><!-- /subtab-fifoflash -->
+
+  <div class="subtab-content" id="subtab-dataunit" style="display:none;">
+    <div class="panel">
+      <h2>Daftar Unit Inventory <span class="count" id="tableCount"></span></h2>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Report QC lengkap per tanggal kedatangan ada di subtab <b>✅ Report QC</b> — klik badge report QC atau keterkaitan di bawah untuk lompat langsung.</p>
+      <div class="filters">
+        <input type="text" id="fSearch" placeholder="Cari model, warna, IMEI, supplier...">
+        <select id="fModel"><option value="">Semua Model</option></select>
+        <select id="fStatus">
+          <option value="">Semua Status</option>
+          <option value="Ready Stock">Ready Stock</option>
+          <option value="Prioritas FIFO">Prioritas FIFO</option>
+          <option value="Flash Sale">Flash Sale</option>
+          <option value="Trouble">Trouble</option>
+          <option value="Terjual">Terjual</option>
+        </select>
+        <select id="fGudang"><option value="">Semua Cabang</option></select>
+        <select id="fSupplier"><option value="">Semua Supplier</option></select>
+        <select id="fQC">
+          <option value="">Semua Report QC</option>
+          <option value="Lolos QC">Lolos QC</option>
+          <option value="Pending QC">Pending QC</option>
+          <option value="Gagal QC">Gagal QC</option>
+        </select>
+      </div>
+      <div class="result-count" id="resultCount"></div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th data-key="imei">IMEI</th>
+              <th data-key="model">Model</th>
+              <th data-key="warna">Warna</th>
+              <th data-key="kapasitas">Kapasitas</th>
+              <th data-key="supplier">Supplier</th>
+              <th data-key="gudang">Lokasi Cabang</th>
+              <th data-key="tanggal_masuk">Tgl Masuk</th>
+              <th data-key="hari_di_gudang">Hari</th>
+              <th data-key="status">Status</th>
+              <th data-key="report_qc">Report QC</th>
+              <th>Keterkaitan</th>
+              <th data-key="catatan">Catatan</th>
+              <th data-key="harga_beli">Harga Beli</th>
+              <th data-key="harga_jual">Harga Jual</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /subtab-dataunit -->
+
+  <div class="subtab-content" id="subtab-reportqc" style="display:none;">
+    <div class="panel">
+      <h2>📋 Report QC per Tanggal Masuk (dari Supplier) <span class="count" id="qcByDateCount"></span></h2>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Data unit lengkap (harga, status, cabang) ada di subtab <b>📋 Data Unit</b> — klik IMEI di bawah untuk lompat & filter otomatis.</p>
+      <div class="filters">
+        <select id="qcDateFSupplier"><option value="">Semua Supplier</option></select>
+        <select id="qcDateFStatus">
+          <option value="">Semua Report QC</option>
+          <option value="Lolos QC">Lolos QC</option>
+          <option value="Pending QC">Pending QC</option>
+          <option value="Gagal QC">Gagal QC</option>
+        </select>
+      </div>
+      <div id="qcByDateWrap"></div>
+    </div>
+  </div><!-- /subtab-reportqc -->
+
+  <div class="subtab-content" id="subtab-supplychain" style="display:none;">
+    <div class="grid2">
+      <div class="panel">
+        <h2>⚠️ Reorder Alert <span class="count" id="reorderCount"></span></h2>
+        <div class="alert-list" id="reorderList"></div>
+      </div>
+      <div class="panel">
+        <h2>Tren Penjualan Mingguan vs Stok <span class="count" id="demandNote"></span></h2>
+        <div class="chart-box" style="height:210px;"><canvas id="chartDemand"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>🔮 Prediksi Kebutuhan Restock <span class="count" id="restockForecastCount"></span></h2>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Proyeksi kapan tiap model kehabisan stok berdasarkan rata² penjualan 8 minggu terakhir, plus saran tanggal & qty order berikutnya (sudah memperhitungkan rata² lead time supplier). Diurutkan dari yang paling mendesak.</p>
+      <div class="table-scroll" style="max-height:320px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th><th>Stok Saat Ini</th><th>Rata² Jual</th><th>Sisa Waktu</th>
+              <th>Proyeksi Habis</th><th>Saran Tgl Order</th><th>Saran Qty</th>
+            </tr>
+          </thead>
+          <tbody id="restockForecastTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">📥 Purchase Order / Incoming Shipment <span class="count" id="poCount"></span></h2>
+        <button class="btn" type="button" onclick="openPoModal()">+ Tambah PO Baru</button>
+      </div>
+      <div class="filters">
+        <select id="fPoSupplier"><option value="">Semua Supplier</option></select>
+        <select id="fPoStatus">
+          <option value="">Semua Status</option>
+          <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+          <option value="Diterima">Diterima</option>
+          <option value="Terlambat">Terlambat</option>
+        </select>
+      </div>
+      <div class="table-scroll" style="max-height:340px;">
+        <table>
+          <thead>
+            <tr>
+              <th>PO ID</th><th>Supplier</th><th>Model</th><th>Qty</th><th>Cabang Tujuan</th>
+              <th>Tgl Order</th><th>Estimasi Tiba</th><th>Tgl Diterima</th><th>Lead Time</th><th>Status</th><th>Total Biaya</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="poTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>📊 Performa Supplier</h2>
+        <div class="table-scroll" style="max-height:340px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Supplier</th><th>Total Unit</th><th>% Trouble/Gagal QC</th>
+                <th>PO Selesai</th><th>Rata² Lead Time</th><th>On-Time Rate</th><th>Rating</th>
+              </tr>
+            </thead>
+            <tbody id="supplierTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>🏆 Supplier Scorecard <span class="count" id="scorecardNote"></span></h2>
+        <div class="chart-box" style="height:280px;"><canvas id="chartScorecard"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>💸 Analisis Biaya Pengadaan <span class="count" id="costAnalysisNote"></span></h2>
+      <div class="grid2">
+        <div class="chart-box" style="height:230px;"><canvas id="chartCostPerSupplier"></canvas></div>
+        <div class="chart-box" style="height:230px;"><canvas id="chartCostTrend"></canvas></div>
+      </div>
+      <div class="table-scroll" style="max-height:280px;margin-top:14px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Supplier</th><th>Total PO</th><th>Nilai Barang</th><th>Ongkir</th><th>Biaya Lain</th><th>Grand Total</th>
+            </tr>
+          </thead>
+          <tbody id="costBreakdownTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /subtab-supplychain -->
+
+  <div class="subtab-content" id="subtab-analisis" style="display:none;">
+    <div class="grid2">
+      <div class="panel">
+        <h2>💰 Margin &amp; Profitabilitas <span class="count" id="marginNote"></span></h2>
+        <div class="chart-box" style="height:230px;"><canvas id="chartMargin"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>🔄 Inventory Turnover Rate <span class="count" id="turnoverNote"></span></h2>
+        <div class="chart-box" style="height:230px;"><canvas id="chartTurnover"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>🥵 Dead Stock Aging Heatmap <span class="count" id="deadstockNote"></span></h2>
+        <div id="heatmapWrap" style="overflow-x:auto;"></div>
+      </div>
+      <div class="panel">
+        <h2>🔁 Rekomendasi Transfer Antar Cabang <span class="count" id="transferCount"></span></h2>
+        <div class="alert-list" id="transferList" style="max-height:260px;"></div>
+      </div>
+    </div>
+  </div><!-- /subtab-analisis -->
+
+  <div class="subtab-content" id="subtab-unitdp" style="display:none;">
+    <div class="kpi-grid" id="unitDpKpiGrid"></div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">📋 Permintaan Unit dari Cabang <span class="count" id="requestCount"></span></h2>
+        <button class="btn" type="button" onclick="openRequestModal()">+ Tambah Permintaan</button>
+      </div>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Permintaan unit spesifik dari cabang untuk customer tertentu, lengkap dengan batas waktu (deadline) pemenuhan. Baris merah = deadline sudah lewat tapi status masih Menunggu.</p>
+      <div class="filters">
+        <input type="text" id="fReqSearch" placeholder="Cari nama/HP customer, model...">
+        <select id="fReqCabang"><option value="">Semua Cabang</option></select>
+        <select id="fReqStatus">
+          <option value="">Semua Status</option>
+          <option value="Menunggu">Menunggu</option>
+          <option value="Terlambat">Terlambat</option>
+          <option value="Terpenuhi">Terpenuhi</option>
+          <option value="Dibatalkan">Dibatalkan</option>
+        </select>
+      </div>
+      <div class="table-scroll" style="max-height:380px;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Cabang Peminta</th><th>Model</th><th>Warna/Kapasitas</th><th>Qty</th>
+              <th>Customer</th><th>No HP</th><th>Tgl Permintaan</th><th>Deadline</th><th>Status</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="requestTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">👤 Database Customer <span class="count" id="customerCount"></span></h2>
+        <button class="btn" type="button" onclick="openCustomerModal()">+ Tambah Customer</button>
+      </div>
+      <div class="filters">
+        <input type="text" id="fCustSearch" placeholder="Cari nama/No HP customer...">
+      </div>
+      <div class="table-scroll" style="max-height:340px;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Nama</th><th>No HP</th><th>Cabang Asal</th><th>Tgl Daftar</th><th>Jumlah Permintaan</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="customerTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /subtab-unitdp -->
+
+  </div><!-- /tab-unit -->
+
+  <div class="tab-content" id="tab-dusbox" style="display:none;">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>📦 Ringkasan Dusbox</h2>
+      <div class="kpi-grid" id="dusboxKpiGrid"></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h2>Stok per Model</h2><div class="chart-box"><canvas id="chartDusbox"></canvas></div></div>
+      <div class="panel"><h2>⚠️ Reorder Alert <span class="count" id="dusboxReorderCount"></span></h2><div class="alert-list" id="dusboxReorderList" style="max-height:230px;"></div></div>
+    </div>
+    <div class="panel">
+      <h2>Daftar Stok Dusbox <span class="count" id="dusboxTableCount"></span></h2>
+      <div class="filters">
+        <input type="text" id="dusboxSearch" placeholder="Cari model, SKU...">
+        <select id="dusboxFModel"><option value="">Semua Model</option></select>
+        <select id="dusboxFKondisi"><option value="">Semua Kondisi</option></select>
+        <select id="dusboxFGudang"><option value="">Semua Cabang</option></select>
+      </div>
+      <div class="result-count" id="dusboxResultCount"></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Jenis</th><th>Model</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th></tr></thead>
+          <tbody id="dusboxTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /tab-dusbox -->
+
+  <div class="tab-content" id="tab-aksesoris" style="display:none;">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>🔌 Ringkasan Aksesoris</h2>
+      <div class="kpi-grid" id="aksesorisKpiGrid"></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h2>Stok per Jenis</h2><div class="chart-box"><canvas id="chartAksesoris"></canvas></div></div>
+      <div class="panel"><h2>⚠️ Reorder Alert <span class="count" id="aksesorisReorderCount"></span></h2><div class="alert-list" id="aksesorisReorderList" style="max-height:230px;"></div></div>
+    </div>
+    <div class="panel">
+      <h2>🔁 Rekomendasi Transfer Antar Cabang <span class="count" id="aksesorisTransferCount"></span></h2>
+      <div class="alert-list" id="aksesorisTransferList" style="max-height:260px;"></div>
+    </div>
+    <div class="panel">
+      <h2>Daftar Stok Aksesoris <span class="count" id="aksesorisTableCount"></span></h2>
+      <div class="filters">
+        <input type="text" id="aksesorisSearch" placeholder="Cari jenis, SKU...">
+        <select id="aksesorisFJenis"><option value="">Semua Jenis</option></select>
+        <select id="aksesorisFGudang"><option value="">Semua Cabang</option></select>
+        <select id="aksesorisFSupplier"><option value="">Semua Supplier</option></select>
+      </div>
+      <div class="result-count" id="aksesorisResultCount"></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th></tr></thead>
+          <tbody id="aksesorisTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /tab-aksesoris -->
+
+  <div class="tab-content" id="tab-sparepart" style="display:none;">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>🔧 Ringkasan Sparepart</h2>
+      <div class="kpi-grid" id="sparepartKpiGrid"></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h2>Stok per Jenis</h2><div class="chart-box"><canvas id="chartSparepart"></canvas></div></div>
+      <div class="panel"><h2>⚠️ Reorder Alert <span class="count" id="sparepartReorderCount"></span></h2><div class="alert-list" id="sparepartReorderList" style="max-height:230px;"></div></div>
+    </div>
+    <div class="panel">
+      <h2>🔁 Rekomendasi Transfer Antar Cabang <span class="count" id="sparepartTransferCount"></span></h2>
+      <div class="alert-list" id="sparepartTransferList" style="max-height:260px;"></div>
+    </div>
+    <div class="panel">
+      <h2>Daftar Stok Sparepart <span class="count" id="sparepartTableCount"></span></h2>
+      <div class="filters">
+        <input type="text" id="sparepartSearch" placeholder="Cari jenis, model, SKU...">
+        <select id="sparepartFJenis"><option value="">Semua Jenis</option></select>
+        <select id="sparepartFKondisi"><option value="">Semua Kondisi</option></select>
+        <select id="sparepartFGudang"><option value="">Semua Cabang</option></select>
+      </div>
+      <div class="result-count" id="sparepartResultCount"></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th></tr></thead>
+          <tbody id="sparepartTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /tab-sparepart -->
+
+  <div class="tab-content" id="tab-returklaim" style="display:none;">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>🔄 Ringkasan Retur &amp; Klaim</h2>
+      <div class="kpi-grid" id="rkKpiGrid"></div>
+    </div>
+    <div class="grid2">
+      <div class="panel"><h2>Status per Tipe</h2><div class="chart-box"><canvas id="chartRkStatus"></canvas></div></div>
+      <div class="panel"><h2>Berdasarkan Kategori Barang</h2><div class="chart-box"><canvas id="chartRkKategori"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <h2>Daftar Retur &amp; Klaim <span class="count" id="rkTableCount"></span></h2>
+      <div class="filters">
+        <input type="text" id="rkSearch" placeholder="Cari referensi, deskripsi, pihak terkait...">
+        <select id="rkFTipe">
+          <option value="">Semua Tipe</option>
+          <option value="Retur Cabang">Retur Cabang</option>
+          <option value="Retur ke Supplier">Retur ke Supplier</option>
+        </select>
+        <select id="rkFKategori"><option value="">Semua Kategori Barang</option></select>
+        <select id="rkFStatus"><option value="">Semua Status</option></select>
+      </div>
+      <div class="result-count" id="rkResultCount"></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>ID</th><th>Tipe</th><th>Kategori</th><th>Referensi</th><th>Deskripsi</th><th>Alasan</th><th>Tanggal</th><th>Status</th><th>Nilai</th><th>Pihak Terkait</th><th>Catatan</th></tr></thead>
+          <tbody id="rkTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /tab-returklaim -->
+
+  <div class="tab-content" id="tab-import" style="display:none;">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>📤 Import Data dari CSV / Excel</h2>
+      <p style="color:var(--muted);font-size:12px;">Upload file untuk mengganti data sample dengan data asli kamu. Download dulu template-nya supaya format kolomnya cocok. Data hasil import otomatis tersimpan di browser ini — tetap ada meski file di-refresh atau dibuka ulang, sampai kamu reset atau import ulang.</p>
+      <div class="btn-row" style="margin-bottom:0;margin-top:12px;">
+        <button class="btn btn-outline" id="btnResetSampleData" type="button">↺ Reset Semua ke Data Sample</button>
+        <button class="btn btn-outline" id="btnDownloadBackup" type="button">⬇ Download Backup (Semua Data)</button>
+        <button class="btn btn-outline" id="btnRestoreBackup" type="button">📤 Restore dari Backup</button>
+        <input type="file" id="fileRestoreBackup" accept=".json" style="display:none;">
+      </div>
+      <p style="color:var(--muted);font-size:11px;margin-top:8px;">Backup menyimpan seluruh data dashboard (Unit, Dusbox, Aksesoris, Sparepart, Retur &amp; Klaim, Unit Service, Stiker Barcode) jadi satu file JSON yang bisa disimpan atau dipindah ke perangkat lain.</p>
+    </div>
+
+    <div class="import-grid" id="importGrid"></div>
+  </div><!-- /tab-import -->
+
+  <div class="tab-content" id="tab-service" style="display:none;">
+    <div id="svcRoot">
+
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Dashboard unit service - iPhone</h1>
+      <p id="svc_today"></p>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="svc_tabBtnInternal" onclick="svcApp.switchTab('internal')">Servis Internal</button>
+    <button class="tab-btn" id="svc_tabBtnExternal" onclick="svcApp.switchTab('external')">Servis Eksternal</button>
+  </div>
+
+  <div id="svc_internalSection">
+
+    <div class="header-actions" style="margin-bottom: 16px;">
+      <button class="btn secondary" onclick="svcApp.openSparepartModal()">Kelola Sparepart</button>
+      <button class="btn secondary" onclick="document.getElementById('svc_importFile').click()">Import Excel</button>
+      <input type="file" id="svc_importFile" accept=".xlsx,.xls" style="display:none" onchange="svcApp.handleImportFile(event)">
+      <button class="btn secondary" onclick="svcApp.exportExcel()">Export Excel</button>
+      <button class="btn" onclick="svcApp.openAddModal()">+ Tambah unit</button>
+    </div>
+
+    <div class="note">Kategori kesulitan (HIGH / MID / LOW) terisi otomatis dari daftar standar. Satu unit bisa punya lebih dari satu perbaikan &mdash; klik tombol "Pilih perbaikan" lalu centang semua yang perlu dikerjakan. Sparepart dipilih berdasarkan IMEI/serial dari database sparepart (menu "Kelola Sparepart") dan otomatis ditandai terpakai. Data unit &amp; sparepart tersimpan otomatis di browser ini.</div>
+
+    <div class="stats" id="svc_stats"></div>
+
+    <div class="toolbar">
+      <input type="text" id="svc_search" placeholder="Cari model, kerusakan, perbaikan, atau teknisi..." oninput="svcApp.render()">
+      <select id="svc_filterStatus" onchange="svcApp.render()">
+        <option value="">Semua status</option>
+        <option value="queue">Antrian</option>
+        <option value="progress">Diperbaiki</option>
+        <option value="parts">Tunggu sparepart</option>
+        <option value="ready">Siap diambil</option>
+        <option value="done">Selesai</option>
+      </select>
+      <select id="svc_filterKategori" onchange="svcApp.render()">
+        <option value="">Semua kategori</option>
+        <option value="HIGH">High</option>
+        <option value="MID">Mid</option>
+        <option value="LOW">Low</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" onclick="svcApp.sortBy('series')">Series<span class="sort-ind" data-scope="int" data-key="series"></span></th>
+            <th>IMEI</th>
+            <th>Kerusakan</th>
+            <th>Perbaikan</th>
+            <th class="sortable" onclick="svcApp.sortBy('kategori')">Kategori<span class="sort-ind" data-scope="int" data-key="kategori"></span></th>
+            <th>Nama sparepart</th>
+            <th>IMEI sparepart</th>
+            <th class="sortable" onclick="svcApp.sortBy('datein')">Tgl masuk<span class="sort-ind" data-scope="int" data-key="datein"></span></th>
+            <th class="sortable" onclick="svcApp.sortBy('tglkembali')">Tgl kembali<span class="sort-ind" data-scope="int" data-key="tglkembali"></span></th>
+            <th class="sortable" onclick="svcApp.sortBy('esteta')">Deadline<span class="sort-ind" data-scope="int" data-key="esteta"></span></th>
+            <th class="sortable" onclick="svcApp.sortBy('status')">Status<span class="sort-ind" data-scope="int" data-key="status"></span></th>
+            <th>Teknisi</th>
+            <th>Keterangan</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="svc_tbody"></tbody>
+      </table>
+      <div class="empty" id="svc_emptyMsg" style="display:none;">Tidak ada unit yang cocok.</div>
+    </div>
+
+  </div>
+
+  <div id="svc_externalSection" style="display:none;">
+
+    <div class="header-actions" style="margin-bottom: 16px;">
+      <button class="btn secondary" onclick="document.getElementById('svc_importFileExt').click()">Import Excel</button>
+      <input type="file" id="svc_importFileExt" accept=".xlsx,.xls" style="display:none" onchange="svcApp.handleImportExtFile(event)">
+      <button class="btn secondary" onclick="svcApp.exportExtExcel()">Export Excel</button>
+      <button class="btn" onclick="svcApp.openExtAddModal()">+ Tambah unit eksternal</button>
+    </div>
+
+    <div class="note">Untuk unit yang dititipkan/dikirim ke pihak eksternal (cabang lain atau vendor servis) karena perbaikannya tidak bisa ditangani in-house. Kategori tetap otomatis dari daftar standar yang sama. Data tersimpan otomatis di browser ini, terpisah dari data servis internal.</div>
+
+    <div class="stats" id="svc_extStats"></div>
+
+    <div class="toolbar">
+      <input type="text" id="svc_extSearch" placeholder="Cari model, kerusakan, perbaikan, tujuan, atau PIC..." oninput="svcApp.extRender()">
+      <select id="svc_extFilterStatus" onchange="svcApp.extRender()">
+        <option value="">Semua status</option>
+        <option value="sent">Dikirim</option>
+        <option value="process">Diproses eksternal</option>
+        <option value="returned">Kembali dari eksternal</option>
+        <option value="done">Selesai</option>
+      </select>
+      <select id="svc_extFilterKategori" onchange="svcApp.extRender()">
+        <option value="">Semua kategori</option>
+        <option value="HIGH">High</option>
+        <option value="MID">Mid</option>
+        <option value="LOW">Low</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" onclick="svcApp.extSortBy('series')">Series<span class="sort-ind" data-scope="ext" data-key="series"></span></th>
+            <th>IMEI</th>
+            <th>Kerusakan</th>
+            <th>Perbaikan</th>
+            <th class="sortable" onclick="svcApp.extSortBy('kategori')">Kategori<span class="sort-ind" data-scope="ext" data-key="kategori"></span></th>
+            <th>Dikirim ke</th>
+            <th class="sortable" onclick="svcApp.extSortBy('tglkeluar')">Tgl keluar<span class="sort-ind" data-scope="ext" data-key="tglkeluar"></span></th>
+            <th class="sortable" onclick="svcApp.extSortBy('tglkembali')">Tgl kembali<span class="sort-ind" data-scope="ext" data-key="tglkembali"></span></th>
+            <th class="sortable" onclick="svcApp.extSortBy('deadline')">Deadline<span class="sort-ind" data-scope="ext" data-key="deadline"></span></th>
+            <th class="sortable" onclick="svcApp.extSortBy('biaya')">Biaya<span class="sort-ind" data-scope="ext" data-key="biaya"></span></th>
+            <th class="sortable" onclick="svcApp.extSortBy('status')">Status<span class="sort-ind" data-scope="ext" data-key="status"></span></th>
+            <th>Catatan</th>
+            <th>PIC</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="svc_extTbody"></tbody>
+      </table>
+      <div class="empty" id="svc_extEmptyMsg" style="display:none;">Tidak ada unit eksternal yang cocok.</div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="svc_modalOverlay">
+  <div class="modal">
+    <h2 id="svc_modalTitle">Edit unit service</h2>
+    <div class="field">
+      <label>Series iPhone</label>
+      <input type="text" id="svc_f_series" placeholder="cth. iPhone 13 Pro">
+    </div>
+    <div class="field">
+      <label>Kapasitas</label>
+      <select id="svc_f_capacity">
+        <option value="64GB">64GB</option>
+        <option value="128GB">128GB</option>
+        <option value="256GB">256GB</option>
+        <option value="512GB">512GB</option>
+        <option value="1TB">1TB</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Warna</label>
+      <input type="text" id="svc_f_color" placeholder="cth. Graphite">
+    </div>
+    <div class="field">
+      <label>IMEI</label>
+      <input type="text" id="svc_f_imei" placeholder="cth. 356874118643095">
+    </div>
+    <div class="field">
+      <label>Kerusakan</label>
+      <input type="text" id="svc_f_issue" placeholder="cth. Layar retak, baterai boros">
+    </div>
+    <div class="field">
+      <label>Nama perbaikan (bisa pilih lebih dari satu)</label>
+      <button type="button" class="btn secondary picker-btn" onclick="svcApp.openPicker({type:'edit'})">
+        <span id="svc_f_perbaikan_label">Pilih perbaikan...</span>
+      </button>
+      <div class="kat-preview" id="svc_f_kat_preview"></div>
+    </div>
+    <div class="field">
+      <label>Nama sparepart (terisi otomatis dari IMEI sparepart)</label>
+      <button type="button" class="btn secondary picker-btn" onclick="svcApp.openSparepartPicker({type:'edit'})">
+        <span id="svc_f_sparepart_label">Pilih sparepart...</span>
+      </button>
+    </div>
+    <div class="field">
+      <label>Tanggal masuk</label>
+      <input type="date" id="svc_f_datein">
+    </div>
+    <div class="field">
+      <label>Tanggal kembali</label>
+      <input type="date" id="svc_f_tglkembali">
+    </div>
+    <div class="field">
+      <label>Deadline</label>
+      <input type="date" id="svc_f_esteta">
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="svc_f_status">
+        <option value="queue">Antrian</option>
+        <option value="progress">Diperbaiki</option>
+        <option value="parts">Tunggu sparepart</option>
+        <option value="ready">Siap diambil</option>
+        <option value="done">Selesai</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Teknisi</label>
+      <input type="text" id="svc_f_tech" placeholder="Nama teknisi">
+    </div>
+    <div class="field">
+      <label>Keterangan</label>
+      <input type="text" id="svc_f_keterangan" placeholder="cth. catatan tambahan">
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="svcApp.closeModal()">Batal</button>
+      <button class="btn" onclick="svcApp.saveUnit()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="svc_addModalOverlay">
+  <div class="modal wide">
+    <h2>Tambah unit service</h2>
+    <div style="overflow-x:auto;">
+      <table class="bulk-table">
+        <thead>
+          <tr>
+            <th>Series</th>
+            <th>Kapasitas</th>
+            <th>Warna</th>
+            <th>IMEI</th>
+            <th>Kerusakan</th>
+            <th>Nama perbaikan</th>
+            <th>Kategori</th>
+            <th>Nama sparepart</th>
+            <th>Tgl masuk</th>
+            <th>Tgl kembali</th>
+            <th>Deadline</th>
+            <th>Status</th>
+            <th>Teknisi</th>
+            <th>Keterangan</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="svc_bulkBody"></tbody>
+      </table>
+    </div>
+    <button class="btn secondary add-row-btn" onclick="svcApp.addBulkRow()">+ Tambah baris</button>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="svcApp.closeAddModal()">Batal</button>
+      <button class="btn" onclick="svcApp.saveBulk()">Simpan semua</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="svc_extModalOverlay">
+  <div class="modal">
+    <h2 id="svc_extModalTitle">Edit unit eksternal</h2>
+    <div class="field">
+      <label>Series iPhone</label>
+      <input type="text" id="svc_fx_series" placeholder="cth. iPhone 13 Pro">
+    </div>
+    <div class="field">
+      <label>Kapasitas</label>
+      <select id="svc_fx_capacity">
+        <option value="64GB">64GB</option>
+        <option value="128GB">128GB</option>
+        <option value="256GB">256GB</option>
+        <option value="512GB">512GB</option>
+        <option value="1TB">1TB</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Warna</label>
+      <input type="text" id="svc_fx_color" placeholder="cth. Graphite">
+    </div>
+    <div class="field">
+      <label>IMEI</label>
+      <input type="text" id="svc_fx_imei" placeholder="cth. 356874118643095">
+    </div>
+    <div class="field">
+      <label>Kerusakan</label>
+      <input type="text" id="svc_fx_issue" placeholder="cth. Layar retak, baterai boros">
+    </div>
+    <div class="field">
+      <label>Nama perbaikan (bisa pilih lebih dari satu)</label>
+      <button type="button" class="btn secondary picker-btn" onclick="svcApp.openPicker({type:'ext-edit'})">
+        <span id="svc_fx_perbaikan_label">Pilih perbaikan...</span>
+      </button>
+      <div class="kat-preview" id="svc_fx_kat_preview"></div>
+    </div>
+    <div class="field">
+      <label>Dikirim ke (vendor / cabang tujuan)</label>
+      <input type="text" id="svc_fx_tujuan" placeholder="cth. Servis Center Jakal">
+    </div>
+    <div class="field">
+      <label>Tanggal keluar</label>
+      <input type="date" id="svc_fx_tglkeluar">
+    </div>
+    <div class="field">
+      <label>Tanggal kembali</label>
+      <input type="date" id="svc_fx_tglkembali">
+    </div>
+    <div class="field">
+      <label>Deadline</label>
+      <input type="date" id="svc_fx_deadline">
+    </div>
+    <div class="field">
+      <label>Biaya (Rp)</label>
+      <input type="number" id="svc_fx_biaya" placeholder="0">
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="svc_fx_status">
+        <option value="sent">Dikirim</option>
+        <option value="process">Diproses eksternal</option>
+        <option value="returned">Kembali dari eksternal</option>
+        <option value="done">Selesai</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Catatan</label>
+      <input type="text" id="svc_fx_catatan" placeholder="cth. nomor resi, catatan tambahan">
+    </div>
+    <div class="field">
+      <label>Penanggung jawab (PIC)</label>
+      <input type="text" id="svc_fx_pic" placeholder="Nama PIC">
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="svcApp.closeExtModal()">Batal</button>
+      <button class="btn" onclick="svcApp.saveExtUnit()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="svc_extAddModalOverlay">
+  <div class="modal wide">
+    <h2>Tambah unit eksternal</h2>
+    <div style="overflow-x:auto;">
+      <table class="bulk-table">
+        <thead>
+          <tr>
+            <th>Series</th>
+            <th>Kapasitas</th>
+            <th>Warna</th>
+            <th>IMEI</th>
+            <th>Kerusakan</th>
+            <th>Nama perbaikan</th>
+            <th>Kategori</th>
+            <th>Dikirim ke</th>
+            <th>Tgl keluar</th>
+            <th>Tgl kembali</th>
+            <th>Deadline</th>
+            <th>Biaya</th>
+            <th>Status</th>
+            <th>Catatan</th>
+            <th>PIC</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="svc_extBulkBody"></tbody>
+      </table>
+    </div>
+    <button class="btn secondary add-row-btn" onclick="svcApp.addExtBulkRow()">+ Tambah baris</button>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="svcApp.closeExtAddModal()">Batal</button>
+      <button class="btn" onclick="svcApp.saveExtBulk()">Simpan semua</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay top" id="svc_pickerOverlay">
+  <div class="modal picker">
+    <h2>Pilih nama perbaikan (bisa lebih dari satu)</h2>
+    <input type="text" class="picker-search" id="svc_pickerSearch" placeholder="Cari nama perbaikan..." oninput="svcApp.filterPicker()">
+    <div class="picker-list" id="svc_pickerList"></div>
+    <div class="picker-count" id="svc_pickerCount"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="svcApp.closePicker()">Batal</button>
+      <button class="btn" onclick="svcApp.confirmPicker()">Simpan pilihan</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay top" id="svc_sparepartPickerOverlay">
+  <div class="modal picker">
+    <h2>Pilih sparepart (berdasarkan IMEI, bisa lebih dari satu)</h2>
+    <input type="text" class="picker-search" id="svc_sparepartPickerSearch" placeholder="Cari IMEI atau nama sparepart..." oninput="svcApp.filterSparepartPicker()">
+    <div class="picker-list" id="svc_sparepartPickerList"></div>
+    <div class="picker-count" id="svc_sparepartPickerCount"></div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="svcApp.closeSparepartPicker()">Batal</button>
+      <button class="btn" onclick="svcApp.confirmSparepartPicker()">Simpan pilihan</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="svc_sparepartModalOverlay">
+  <div class="modal wide">
+    <h2>Kelola database sparepart</h2>
+    <div class="note">Input sparepart harian di sini berdasarkan IMEI/serial masing-masing part. Data tersimpan otomatis di browser ini (tetap disarankan Export Excel sebagai cadangan). Saat servis unit, pilih sparepart lewat tombol "Pilih sparepart" di form unit &mdash; cukup cari berdasarkan IMEI, namanya terisi otomatis dan statusnya berubah jadi Terpakai.</div>
+    <div style="overflow-x:auto;">
+      <table class="bulk-table">
+        <thead>
+          <tr>
+            <th>IMEI / Serial sparepart</th>
+            <th>Nama sparepart</th>
+            <th>Kompatibel dengan</th>
+            <th>Tanggal masuk</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="svc_sparepartBulkBody"></tbody>
+      </table>
+    </div>
+    <button class="btn secondary add-row-btn" onclick="svcApp.addSparepartBulkRow()">+ Tambah baris</button>
+    <div class="modal-actions" style="justify-content:flex-start; margin-top:10px;">
+      <button class="btn" onclick="svcApp.saveSparepartBulk()">Simpan sparepart baru</button>
+    </div>
+
+    <hr style="margin:22px 0; border:none; border-top:1px solid var(--border);">
+
+    <div class="toolbar" style="margin-bottom:12px;">
+      <input type="text" id="svc_sparepartSearch" placeholder="Cari IMEI atau nama sparepart..." oninput="svcApp.renderSparepartTable()">
+      <select id="svc_sparepartFilterStatus" onchange="svcApp.renderSparepartTable()">
+        <option value="">Semua status</option>
+        <option value="tersedia">Tersedia</option>
+        <option value="terpakai">Terpakai</option>
+      </select>
+      <button class="btn secondary" onclick="svcApp.exportSparepartExcel()">Export Excel</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>IMEI / Serial</th>
+            <th>Nama sparepart</th>
+            <th>Kompatibel</th>
+            <th>Tgl masuk</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="svc_sparepartTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="svcApp.closeSparepartModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+
+    </div>
+  </div><!-- /tab-service -->
+
+  <div class="tab-content" id="tab-stiker" style="display:none;">
+<div id="stkRoot">
+<style id="stk_dynamicPageStyle">@page{ size:210mm 297mm; margin:5mm; }</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <div>
+      <h1>Stiker Barcode — IMEI & Sparepart</h1>
+      <p class="sub">Label 40×20mm — satuan atau banyak sekaligus</p>
+    </div>
+    <div class="tag">CODE 128</div>
+  </div>
+
+  <div class="mode-tabs">
+    <button class="mode-tab-btn active" id="stk_modeImeiBtn" onclick="stkApp.switchMode('imei')">📱 Stiker IMEI</button>
+    <button class="mode-tab-btn" id="stk_modeSparepartBtn" onclick="stkApp.switchMode('sparepart')">🔧 Stiker Sparepart</button>
+    <button class="mode-tab-btn" id="stk_modeFlashBtn" onclick="stkApp.switchMode('flash')">🔥 Stiker Flashsale</button>
+  </div>
+
+  <div id="stk_imeiInputWrap">
+    <div class="tabs">
+      <button class="tab-btn active" id="stk_tabSingleImeiBtn" onclick="stkApp.switchTab('imei','single')">Satu per Satu</button>
+      <button class="tab-btn" id="stk_tabBatchImeiBtn" onclick="stkApp.switchTab('imei','batch')">Tempel dari Excel</button>
+    </div>
+  </div>
+  <div id="stk_sparepartInputWrap" class="hidden">
+    <div class="tabs">
+      <button class="tab-btn active" id="stk_tabSingleSparepartBtn" onclick="stkApp.switchTab('sparepart','single')">Satu per Satu</button>
+      <button class="tab-btn" id="stk_tabBatchSparepartBtn" onclick="stkApp.switchTab('sparepart','batch')">Tempel dari Excel</button>
+    </div>
+  </div>
+  <div id="stk_flashInputWrap" class="hidden">
+    <div class="tabs">
+      <button class="tab-btn active" id="stk_tabSingleFlashBtn" onclick="stkApp.switchTab('flash','single')">Satu per Satu</button>
+      <button class="tab-btn" id="stk_tabBatchFlashBtn" onclick="stkApp.switchTab('flash','batch')">Tempel dari Excel</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel" id="stk_panelSingleImei">
+      <p class="panel-title">Tambah Satu Unit</p>
+      <div class="field">
+        <label for="stk_model">Model</label>
+        <input id="stk_model" value="IPHONE 13 128GB MIDNIGHT">
+      </div>
+      <div class="field">
+        <label for="stk_imei">IMEI</label>
+        <input id="stk_imei" value="356789104567890" maxlength="15" inputmode="numeric">
+        <div class="imei-err" id="stk_imeiErr"></div>
+      </div>
+      <div class="field">
+        <label for="stk_tanggal">Tanggal Masuk</label>
+        <input id="stk_tanggal" type="date">
+      </div>
+      <div class="actions">
+        <button onclick="stkApp.addSingle()">+ Tambah ke Daftar</button>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="stk_panelBatchImei">
+      <p class="panel-title">Tempel Langsung dari Excel</p>
+      <div class="field">
+        <label for="stk_batchInput">Blok 3 kolom di Excel (Nama, IMEI, Tanggal) lalu Ctrl+C, paste di sini</label>
+        <textarea id="stk_batchInput" placeholder="IPHONE 11 128GB BLACK	352977110326058	21-07-2026
+IPHONE 11 128GB GREEN	352975114409227	21-07-2026
+IPHONE 12 256GB WHITE	351166899859353	17-07-2026"></textarea>
+      </div>
+      <div class="hint">
+        Tidak perlu header. Kolom dipisah otomatis — cocok untuk hasil <b>paste langsung dari Excel</b> (tab), atau tulis manual pakai <code>|</code>. Kolom ke-3 (tanggal) akan ditampilkan di stiker sebagai <b>tanggal masuk</b>. Model/Kapasitas/Warna otomatis dipisah dari nama produk (mis. "IPHONE 11 128GB BLACK" → Model: IPHONE 11, Kapasitas: 128GB, Warna: BLACK).
+      </div>
+      <div class="imei-err" id="stk_batchErr"></div>
+      <div class="actions">
+        <button onclick="stkApp.addBatchFromTextarea()">+ Proses &amp; Tambah Semua</button>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="stk_panelSingleSparepart">
+      <p class="panel-title">Tambah Satu Sparepart</p>
+      <div class="field">
+        <label for="stk_spNama">Nama Sparepart</label>
+        <input id="stk_spNama" value="LCD iPhone 11 OEM">
+      </div>
+      <div class="field">
+        <label for="stk_spKode">Kode / SKU</label>
+        <input id="stk_spKode" value="LCD-IP11-OEM" maxlength="30">
+        <div class="imei-err" id="stk_spKodeErr"></div>
+      </div>
+      <div class="field">
+        <label for="stk_spTanggal">Tanggal Masuk</label>
+        <input id="stk_spTanggal" type="date">
+      </div>
+      <div class="actions">
+        <button onclick="stkApp.addSingleSparepart()">+ Tambah ke Daftar</button>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="stk_panelBatchSparepart">
+      <p class="panel-title">Tempel Langsung dari Excel</p>
+      <div class="field">
+        <label for="stk_spBatchInput">Blok kolom di Excel (Nama, Kode/SKU, Tanggal) lalu Ctrl+C, paste di sini</label>
+        <textarea id="stk_spBatchInput" placeholder="LCD iPhone 11 OEM	LCD-IP11-OEM	21-07-2026
+Baterai iPhone 12	BAT-IP12	21-07-2026
+Konektor Charging iPhone XR	CHG-IPXR	17-07-2026"></textarea>
+      </div>
+      <div class="hint">
+        Tidak perlu header. Kolom: <b>Nama | Kode/SKU | Tanggal</b> (Tanggal opsional), dipisah tab (paste dari Excel) atau <code>|</code>. Kode/SKU jadi isi barcode-nya.
+      </div>
+      <div class="imei-err" id="stk_spBatchErr"></div>
+      <div class="actions">
+        <button onclick="stkApp.addBatchFromTextareaSparepart()">+ Proses &amp; Tambah Semua</button>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="stk_panelSingleFlash">
+      <p class="panel-title">Tambah Satu Flashsale</p>
+      <div class="field">
+        <label for="stk_flNama">Nama Produk</label>
+        <input id="stk_flNama" value="IPHONE 13 128GB MIDNIGHT">
+      </div>
+      <div class="field">
+        <label for="stk_flImei">IMEI</label>
+        <input id="stk_flImei" value="356789104567890" maxlength="15" inputmode="numeric">
+        <div class="imei-err" id="stk_flImeiErr"></div>
+      </div>
+      <div class="field">
+        <label for="stk_flMinus">Minus / Kekurangan (opsional)</label>
+        <input id="stk_flMinus" value="LCD NOTIF" maxlength="40">
+      </div>
+      <div class="actions">
+        <button onclick="stkApp.addSingleFlash()">+ Tambah ke Daftar</button>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="stk_panelBatchFlash">
+      <p class="panel-title">Tempel Langsung dari Excel</p>
+      <div class="field">
+        <label for="stk_flBatchInput">Blok kolom di Excel (Nama, IMEI, Minus) lalu Ctrl+C, paste di sini</label>
+        <textarea id="stk_flBatchInput" placeholder="IPHONE 13 128GB MIDNIGHT	356789104567890	LCD NOTIF
+IPHONE 12 128GB WHITE	350148175724726	BATERAI 82%
+IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
+      </div>
+      <div class="hint">
+        Tidak perlu header. Kolom: <b>Nama Produk | IMEI | Minus</b> (Minus opsional — kosongkan kalau tidak ada catatan), dipisah tab (paste dari Excel) atau <code>|</code>.
+      </div>
+      <div class="imei-err" id="stk_flBatchErr"></div>
+      <div class="actions">
+        <button onclick="stkApp.addBatchFromTextareaFlash()">+ Proses &amp; Tambah Semua</button>
+      </div>
+    </div>
+
+    <div class="preview-col">
+      <div class="preview-head">
+        <div class="preview-label">Daftar Stiker</div>
+        <div class="count-badge" id="stk_countBadge">0 stiker</div>
+      </div>
+      <div class="field">
+        <input id="stk_searchBox" type="text" placeholder="Cari model, warna, atau IMEI..." oninput="stkApp.renderList()">
+      </div>
+      <div class="stage empty" id="stk_stage">
+        <div class="empty-msg">Belum ada stiker. Tambahkan lewat panel di kiri.</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="stk_paperSize">Ukuran Kertas</label>
+          <select id="stk_paperSize" onchange="stkApp.renderList()">
+            <option value="a4">A4 (210×297mm)</option>
+            <option value="f4" selected>F4 / Folio (215×330mm)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="stk_printScope">Yang Dicetak</label>
+          <select id="stk_printScope" onchange="stkApp.renderList()">
+            <option value="all">Semua Data</option>
+            <option value="new">Hanya Data Baru</option>
+          </select>
+        </div>
+      </div>
+      <div class="field hidden" id="stk_printDateField">
+        <label for="stk_printScopeDate">Tanggal Data Baru</label>
+        <select id="stk_printScopeDate" onchange="stkApp.renderList()">
+          <option value="all">Semua Tanggal</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="secondary" onclick="stkApp.printAll()">Cetak</button>
+        <button class="secondary" onclick="stkApp.exportPdf()">Simpan PDF</button>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="stkApp.exportExcel()">Unduh Excel (.xls)</button>
+        <button class="ghost" onclick="stkApp.markAllAsExisting()">Tandai Baru → Sudah Ada</button>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="stkApp.clearAll()">Kosongkan Daftar</button>
+      </div>
+      <div class="meta-note">
+        Pakai tab <b>"Stiker IMEI"</b> / <b>"Stiker Sparepart"</b> / <b>"Stiker Flashsale"</b> di paling atas untuk pindah mode — masing-masing punya daftar, pencarian, dan riwayat cetak sendiri-sendiri. Item dengan label <b>BARU</b> adalah yang baru kamu tambahkan sesi ini (belum pernah dicetak) — data lama tidak diberi label. Pilih <b>"Hanya Data Baru"</b> di atas untuk cetak/PDF/Excel khusus data baru saja — muncul dropdown tambahan untuk menyaring lagi berdasarkan <b>tanggal masuk</b>. Setelah selesai, tekan <b>"Tandai Baru → Sudah Ada"</b> supaya batch berikutnya mulai bersih lagi. Grid stiker <b>IMEI/Sparepart</b>: 4 kolom, saling berdempetan tanpa jarak (garis putus-putus antar stiker menyatu jadi satu garis potong, bukan dua garis dengan celah kosong di tengahnya — jadi cukup satu kali gunting lurus per baris/kolom), ukuran asli 40×20mm, tersusun dalam aturan tetap <b>13 baris × 4 kolom = 52 stiker per halaman</b>. Grid stiker <b>Flashsale</b> ukurannya lebih besar (60×30mm), tersusun <b>9 baris × 3 kolom = 27 stiker per halaman</b>. Kertas default <b>F4/Folio (215×330mm)</b> — di F4 tersedia ±60mm ruang sisa untuk 13 baris (jauh di bawah batas maksimumnya yang sekitar 16 baris), jadi sangat aman dari risiko kepotong — kalau data lebih dari kapasitas satu halaman, sisanya otomatis lanjut ke halaman baru. Setiap stiker dijamin utuh, tidak terpotong di antara dua halaman. Untuk PDF, pilih tujuan <b>"Simpan sebagai PDF"</b>. Di kotak dialog cetak, set <b>Margins ke "None"</b> dan matikan <b>"Headers and footers"</b> (biasanya di "More settings") — ini penting supaya ruang cetak benar-benar penuh dipakai, bukan disisakan browser untuk judul/tanggal/URL. Set printer ke <b>ukuran asli/100%</b>. Daftar ini <b>otomatis tersimpan di browser</b> perangkat ini.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="stk_printSheet"></div>
+
+
+</div>
+  </div><!-- /tab-stiker -->
+
+  <p class="footer-note">Data bersifat sample untuk keperluan demonstrasi dashboard. Ganti dengan data stok aktual dari sistem/kasir Anda.</p>
+
+  <!-- ===== Modal Tambah/Edit Purchase Order (Supply Chain) ===== -->
+  <div class="dash-modal-overlay" id="poModalOverlay">
+    <div class="dash-modal">
+      <h2 id="poModalTitle">Tambah Purchase Order</h2>
+      <input type="hidden" id="poFormId">
+      <div class="dash-field">
+        <label>Supplier</label>
+        <input type="text" id="poFSupplier" list="poSupplierList" placeholder="Nama supplier">
+        <datalist id="poSupplierList"></datalist>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Model</label>
+          <input type="text" id="poFModel" list="poModelList" placeholder="Contoh: iPhone 15 Pro">
+          <datalist id="poModelList"></datalist>
+        </div>
+        <div class="dash-field">
+          <label>Qty</label>
+          <input type="number" id="poFQty" min="1" value="1">
+        </div>
+      </div>
+      <div class="dash-field">
+        <label>Cabang Tujuan</label>
+        <input type="text" id="poFGudang" list="poGudangList" placeholder="Contoh: Cabang Jakarta Pusat">
+        <datalist id="poGudangList"></datalist>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Tanggal Order</label>
+          <input type="date" id="poFTglOrder">
+        </div>
+        <div class="dash-field">
+          <label>Estimasi Tiba</label>
+          <input type="date" id="poFEstTiba">
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Status</label>
+          <select id="poFStatus">
+            <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+            <option value="Diterima">Diterima</option>
+            <option value="Terlambat">Terlambat</option>
+          </select>
+        </div>
+        <div class="dash-field">
+          <label>Tanggal Diterima</label>
+          <input type="date" id="poFTglDiterima">
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Total Nilai Barang (Rp)</label>
+          <input type="number" id="poFTotalNilai" min="0" step="1000">
+        </div>
+        <div class="dash-field">
+          <label>Biaya Kirim/Ongkir (Rp)</label>
+          <input type="number" id="poFBiayaKirim" min="0" step="1000" value="0">
+        </div>
+      </div>
+      <div class="dash-field">
+        <label>Biaya Lain-lain (Rp) — packing, asuransi, dll</label>
+        <input type="number" id="poFBiayaLain" min="0" step="1000" value="0">
+      </div>
+      <div class="dash-modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closePoModal()">Batal</button>
+        <button class="btn" type="button" onclick="savePoForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Modal Tambah/Edit Permintaan Unit dari Cabang (Unit DP) ===== -->
+  <div class="dash-modal-overlay" id="requestModalOverlay">
+    <div class="dash-modal">
+      <h2 id="requestModalTitle">Tambah Permintaan Unit</h2>
+      <input type="hidden" id="reqFormId">
+      <div class="dash-field">
+        <label>Cabang Peminta</label>
+        <input type="text" id="reqFCabang" list="reqCabangList" placeholder="Contoh: Cabang Jakarta Pusat">
+        <datalist id="reqCabangList"></datalist>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Model</label>
+          <input type="text" id="reqFModel" list="reqModelList" placeholder="Contoh: iPhone 15 Pro">
+          <datalist id="reqModelList"></datalist>
+        </div>
+        <div class="dash-field">
+          <label>Qty</label>
+          <input type="number" id="reqFQty" min="1" value="1">
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Warna</label>
+          <input type="text" id="reqFWarna" placeholder="Contoh: Titanium Natural">
+        </div>
+        <div class="dash-field">
+          <label>Kapasitas</label>
+          <input type="text" id="reqFKapasitas" placeholder="Contoh: 256GB">
+        </div>
+      </div>
+      <div class="dash-field">
+        <label>Customer</label>
+        <input type="text" id="reqFCustomerNama" list="reqCustomerList" placeholder="Ketik nama customer (autolengkap dari Database Customer)">
+        <datalist id="reqCustomerList"></datalist>
+      </div>
+      <div class="dash-field">
+        <label>No HP Customer</label>
+        <input type="text" id="reqFCustomerHp" placeholder="08xxxxxxxxxx">
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Tanggal Permintaan</label>
+          <input type="date" id="reqFTglPermintaan">
+        </div>
+        <div class="dash-field">
+          <label>Deadline</label>
+          <input type="date" id="reqFDeadline">
+        </div>
+      </div>
+      <div class="dash-field">
+        <label>Status</label>
+        <select id="reqFStatus">
+          <option value="Menunggu">Menunggu</option>
+          <option value="Terpenuhi">Terpenuhi</option>
+          <option value="Dibatalkan">Dibatalkan</option>
+        </select>
+      </div>
+      <div class="dash-field">
+        <label>Catatan</label>
+        <input type="text" id="reqFCatatan" placeholder="Opsional">
+      </div>
+      <div class="dash-modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeRequestModal()">Batal</button>
+        <button class="btn" type="button" onclick="saveRequestForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Modal Tambah/Edit Customer (Unit DP) ===== -->
+  <div class="dash-modal-overlay" id="customerModalOverlay">
+    <div class="dash-modal">
+      <h2 id="customerModalTitle">Tambah Customer</h2>
+      <input type="hidden" id="custFormId">
+      <div class="dash-field">
+        <label>Nama</label>
+        <input type="text" id="custFNama" placeholder="Nama lengkap customer">
+      </div>
+      <div class="dash-field">
+        <label>No HP</label>
+        <input type="text" id="custFHp" placeholder="08xxxxxxxxxx">
+      </div>
+      <div class="dash-field">
+        <label>Cabang Asal</label>
+        <input type="text" id="custFCabang" list="custCabangList" placeholder="Contoh: Cabang Jakarta Pusat">
+        <datalist id="custCabangList"></datalist>
+      </div>
+      <div class="dash-field">
+        <label>Catatan</label>
+        <input type="text" id="custFCatatan" placeholder="Opsional">
+      </div>
+      <div class="dash-modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeCustomerModal()">Batal</button>
+        <button class="btn" type="button" onclick="saveCustomerForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="js/dashboard.js"></script>
+<script src="js/service.js"></script>
+<script src="js/sticker.js"></script>
+</body>
+</html>
