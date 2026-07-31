@@ -224,6 +224,7 @@ function addSingle(){
   items.push({ id: idCounter++, type: 'imei', ...parsed, imei, tanggal, batch: 'baru' });
   imeiSet.add(imei);
   renderList();
+  saveToStorage();
 }
 
 function parseLine(line){
@@ -269,6 +270,7 @@ function addBatchFromTextarea(){
   document.getElementById('stk_batchErr').textContent = parts2.join(', ') + (parts2.length ? '.' : '');
   if(added > 0) document.getElementById('stk_batchInput').value = '';
   renderList();
+  if(added > 0) saveToStorage();
 }
 
 // ---------- Sparepart ----------
@@ -297,6 +299,7 @@ function addSingleSparepart(){
   items.push({ id: idCounter++, type: 'sparepart', namaPart: nama, kode, tanggal, batch: 'baru' });
   skuSet.add(kode);
   renderList();
+  saveToStorage();
 }
 
 function addRowsSparepart(rows, defaultBatch){
@@ -336,6 +339,7 @@ function addBatchFromTextareaSparepart(){
   document.getElementById('stk_spBatchErr').textContent = parts2.join(', ') + (parts2.length ? '.' : '');
   if(added > 0) document.getElementById('stk_spBatchInput').value = '';
   renderList();
+  if(added > 0) saveToStorage();
 }
 
 // ---------- Flashsale ----------
@@ -353,6 +357,7 @@ function addSingleFlash(){
   items.push({ id: idCounter++, type: 'flash', namaProduk: nama, imei, minus, batch: 'baru' });
   flashImeiSet.add(imei);
   renderList();
+  saveToStorage();
 }
 
 function addRowsFlash(rows, defaultBatch){
@@ -387,6 +392,7 @@ function addBatchFromTextareaFlash(){
   document.getElementById('stk_flBatchErr').textContent = parts2.join(', ') + (parts2.length ? '.' : '');
   if(added > 0) document.getElementById('stk_flBatchInput').value = '';
   renderList();
+  if(added > 0) saveToStorage();
 }
 
 
@@ -399,6 +405,7 @@ function removeItem(id){
     else imeiSet.delete(removed.imei);
   }
   renderList();
+  saveToStorage();
 }
 
 function clearAll(){
@@ -417,6 +424,7 @@ function clearAll(){
     return true;
   });
   renderList();
+  saveToStorage();
 }
 
 function makeStickerNode(item, forPrint){
@@ -608,8 +616,13 @@ function renderList(){
     }
     printSheet.appendChild(pageEl);
   }
-
-  saveToStorage();
+  // CATATAN PENTING: renderList() SENGAJA tidak lagi memanggil saveToStorage() di sini.
+  // renderList() dipanggil untuk render murni (ganti mode, ketik di search box, sebelum
+  // print/PDF, bootstrap awal) — kalau render ini ikut nge-save, render dengan `items` kosong
+  // (mis. saat sesi login belum siap / fetch awal gagal) akan MENIMPA data asli di database
+  // dengan array kosong. Ini pernah benar-benar terjadi dan menghapus data stiker produksi.
+  // saveToStorage() sekarang dipanggil eksplisit HANYA di fungsi yang benar-benar mengubah
+  // `items` (addSingle, addBatch*, removeItem, clearAll, markAllAsExisting).
 }
 
 function markAllAsExisting(){
@@ -618,6 +631,7 @@ function markAllAsExisting(){
   if(baruCount === 0){ alert('Tidak ada data baru untuk ditandai di mode ini.'); return; }
   modeItems.forEach(it => { it.batch = 'awal'; });
   renderList();
+  saveToStorage();
 }
 
 function printAll(){
