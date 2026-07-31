@@ -91,13 +91,21 @@ function effectiveStatus(d){
 function isAutoTrouble(d){
   return effectiveStatus(d) === 'Trouble' && d.status !== 'Trouble';
 }
+// Satu definisi "perlu prioritas FIFO" dipakai bareng oleh KPI card & panel alert supaya
+// angkanya selalu konsisten: status memang "Prioritas FIFO", ATAU sudah >60 hari di gudang
+// (asal belum Terjual/Trouble — unit begitu tidak relevan buat antrean jual).
+function isFifoPriority(d){
+  const es = effectiveStatus(d);
+  if(es==='Terjual' || es==='Trouble') return false;
+  return d.status==='Prioritas FIFO' || d.hari_di_gudang>60;
+}
 
 // ---------- KPI ----------
 function computeKPI(data){
   const total = data.length;
   const byStatus = s => data.filter(d=>effectiveStatus(d)===s).length;
   const ready = byStatus('Ready Stock');
-  const fifo = byStatus('Prioritas FIFO');
+  const fifo = data.filter(isFifoPriority).length;
   const flash = byStatus('Flash Sale');
   const trouble = byStatus('Trouble');
   const sold = byStatus('Terjual');
@@ -183,11 +191,7 @@ function renderCharts(){
 
 // ---------- FIFO alert list ----------
 function renderFifo(){
-  const fifoUnits = inventoryData.filter(d=>{
-      const es = effectiveStatus(d);
-      if(es==='Terjual' || es==='Trouble') return false; // unit trouble (termasuk auto Gagal QC) tidak masuk antrean FIFO
-      return d.status==='Prioritas FIFO' || d.hari_di_gudang>60;
-    })
+  const fifoUnits = inventoryData.filter(isFifoPriority)
     .sort((a,b)=>b.hari_di_gudang-a.hari_di_gudang);
   document.getElementById('fifoCount').textContent = `${fifoUnits.length} unit perlu prioritas (per IMEI)`;
   document.getElementById('fifoList').innerHTML = fifoUnits.map(u=>`
