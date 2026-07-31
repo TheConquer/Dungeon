@@ -20,6 +20,9 @@ render.yaml Konfigurasi deploy Render (1 Web Service)
    postgresql://<user>:<password>@<host>-pooler.<region>.aws.neon.tech/<db>?sslmode=require
    ```
 3. Copy `backend/.env.example` jadi `backend/.env`, isi `DATABASE_URL` dengan string di atas.
+4. Isi juga `APP_USERNAME`, `APP_PASSWORD` (login dashboard — satu akun bersama untuk seluruh
+   tim, bukan per-orang), dan `SESSION_SECRET` (generate dengan
+   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
 
 ## 2. Setup Backend (lokal)
 
@@ -71,6 +74,9 @@ railway login
 railway init --name <nama-project>     # jalankan dari ROOT repo, bukan dari backend/
 railway variable set "DATABASE_URL=<connection string Neon>"
 railway variable set "NODE_ENV=production"
+railway variable set "APP_USERNAME=<username login>"
+railway variable set "APP_PASSWORD=<password login>"
+railway variable set "SESSION_SECRET=<random panjang>"
 railway up --ci                        # jalankan dari ROOT repo juga
 railway domain                         # generate URL publik
 ```
@@ -86,7 +92,8 @@ Root `package.json` sudah punya script `postinstall` (install dependency `backen
    - Build Command: `npm install`
    - Start Command: `node src/server.js`
 3. Set environment variable `DATABASE_URL` di Render ke connection string Neon (Render tidak
-   boleh dibiarkan pakai database bawaan hosting — pastikan ini mengarah ke Neon).
+   boleh dibiarkan pakai database bawaan hosting — pastikan ini mengarah ke Neon), plus
+   `APP_USERNAME`, `APP_PASSWORD`, `SESSION_SECRET` (lihat penjelasan di atas).
 
 ### Setelah deploy (kedua opsi)
 Jalankan `npm run db:init` **sekali saja** (dari `backend/`, lokal, dengan `DATABASE_URL` yang
@@ -106,6 +113,10 @@ di Neon, bukan di server aplikasi.
   cetak stiker barcode, dst) tetap identik perilakunya dengan versi HTML lama.
 - Kode di `js/dashboard.js` sengaja tetap **classic script** (bukan ES module) karena banyak
   `onclick="..."` di HTML yang memanggil fungsi top-level secara global.
+- **Login**: satu username+password bersama (bukan akun per-orang) via `express-session`.
+  Session disimpan di memory server — kalau container restart/redeploy, semua yang login harus
+  login ulang lagi. Cukup untuk skala tim kecil; kalau nanti butuh session yang tahan restart,
+  ganti session store ke yang backed database (mis. `connect-pg-simple` ke Neon yang sama).
 
 ## Catatan
 

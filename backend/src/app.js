@@ -1,12 +1,34 @@
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { requireAuth } = require('./middleware/auth');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: '20mb' })); // backup/restore bisa berupa JSON besar
+
+app.set('trust proxy', 1); // Railway/Render ada di belakang reverse proxy
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'dev-only-secret-ganti-di-produksi',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 hari
+  },
+}));
+
+app.use('/api/auth', require('./routes/auth.routes'));
+app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// Semua /api/* selain /auth & /health wajib login dulu
+app.use('/api', requireAuth);
 
 app.use('/api/units', require('./routes/units.routes'));
 app.use('/api/dusbox', require('./routes/dusbox.routes'));
@@ -25,14 +47,17 @@ app.use('/api/service/external', require('./routes/serviceExternal.routes'));
 app.use('/api/stickers', require('./routes/stickers.routes'));
 app.use('/api/backup', require('./routes/backup.routes'));
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
-
-// Frontend statis (satu Render Web Service melayani API + frontend)
+// Frontend statis (satu Render/Railway service melayani API + frontend).
+// index:false supaya kita bisa gate index.html di belakang login sendiri di bawah.
 const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend', 'public');
-app.use(express.static(FRONTEND_DIR));
+app.use(express.static(FRONTEND_DIR, { index: false }));
+
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
-  res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+  if (req.session && req.session.authenticated) {
+    return res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+  }
+  res.redirect('/login.html');
 });
 
 app.use('/api', notFound);

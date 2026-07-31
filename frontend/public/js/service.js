@@ -125,15 +125,23 @@ function resyncSparepartUsage(unitList) {
 // Dulu localStorage, sekarang di-resync penuh ke REST API tiap kali dipanggil — svcApp
 // menghitung status/usedByUnitId/linkedSkuId sendiri persis seperti sebelumnya (lihat
 // applySparepartUsage/resyncSparepartUsage di bawah), kita cuma ganti titik simpannya.
+function reportSaveFailure(err) {
+  alert('⚠️ Gagal menyimpan perubahan ke database: ' + err.message + '\n\nCoba refresh halaman lalu ulangi — perubahan terakhir kemungkinan belum tersimpan.');
+}
+function putRows(url, rows) {
+  return fetch(url, {
+    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows })
+  }).then(res => {
+    if(!res.ok) return res.json().catch(()=>({})).then(body => {
+      throw new Error(body.error || ('Server menolak (status ' + res.status + ')'));
+    });
+  }).catch(reportSaveFailure);
+}
 function saveUnitsDB() {
-  fetch('/api/service/units', {
-    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: units })
-  }).catch(()=>{});
+  putRows('/api/service/units', units);
 }
 function saveSparepartDB() {
-  fetch('/api/service/spareparts', {
-    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: sparepartInventory })
-  }).catch(()=>{});
+  putRows('/api/service/spareparts', sparepartInventory);
 }
 
 function computeNextIdNum(list) {
@@ -676,9 +684,7 @@ const EXTERNAL_STATUS_BADGE_CLASS = {
 };
 
 function saveExternalDB() {
-  fetch('/api/service/external', {
-    method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: externalUnits })
-  }).catch(()=>{});
+  putRows('/api/service/external', externalUnits);
 }
 
 let externalUnits = [];

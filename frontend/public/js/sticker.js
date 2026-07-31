@@ -132,7 +132,13 @@ let flashImeiSet = new Set();
 function saveToStorage(){
   fetch('/api/stickers', {
     method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ items })
-  }).catch(()=>{});
+  }).then(res => {
+    if(!res.ok) return res.json().catch(()=>({})).then(body => {
+      throw new Error(body.error || ('Server menolak (status ' + res.status + ')'));
+    });
+  }).catch(err => {
+    alert('⚠️ Gagal menyimpan perubahan ke database: ' + err.message + '\n\nCoba refresh halaman lalu ulangi — perubahan terakhir kemungkinan belum tersimpan.');
+  });
 }
 
 function cleanImei(v){

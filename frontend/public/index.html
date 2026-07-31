@@ -16,7 +16,10 @@
       <h1>📦 Dashboard Inventory Control — Unit, Dusbox, Aksesoris &amp; Sparepart</h1>
       <p>Ringkasan stok unit iPhone, packaging, aksesoris, dan sparepart dalam satu dashboard</p>
     </div>
-    <div class="badge-date" id="todayBadge"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="badge-date" id="todayBadge"></div>
+      <button class="btn btn-outline" id="btnLogout" type="button" style="padding:6px 12px;font-size:12px;">Logout</button>
+    </div>
   </header>
 
   <div class="btn-row">
@@ -453,7 +456,7 @@
   <div class="tab-content" id="tab-import" style="display:none;">
     <div class="panel" style="margin-bottom:16px;">
       <h2>📤 Import Data dari CSV / Excel</h2>
-      <p style="color:var(--muted);font-size:12px;">Upload file untuk mengganti data sample dengan data asli kamu. Download dulu template-nya supaya format kolomnya cocok. Data hasil import otomatis tersimpan di browser ini — tetap ada meski file di-refresh atau dibuka ulang, sampai kamu reset atau import ulang.</p>
+      <p style="color:var(--muted);font-size:12px;">Upload file untuk mengganti data sample dengan data asli kamu. Download dulu template-nya supaya format kolomnya cocok. Data hasil import otomatis tersimpan ke database — tetap ada meski halaman di-refresh atau dibuka di perangkat lain, sampai kamu import ulang.</p>
       <div class="btn-row" style="margin-bottom:0;margin-top:12px;">
         <button class="btn btn-outline" id="btnResetSampleData" type="button">↺ Reset Semua ke Data Sample</button>
         <button class="btn btn-outline" id="btnDownloadBackup" type="button">⬇ Download Backup (Semua Data)</button>
@@ -493,7 +496,7 @@
       <button class="btn" onclick="svcApp.openAddModal()">+ Tambah unit</button>
     </div>
 
-    <div class="note">Kategori kesulitan (HIGH / MID / LOW) terisi otomatis dari daftar standar. Satu unit bisa punya lebih dari satu perbaikan &mdash; klik tombol "Pilih perbaikan" lalu centang semua yang perlu dikerjakan. Sparepart dipilih berdasarkan IMEI/serial dari database sparepart (menu "Kelola Sparepart") dan otomatis ditandai terpakai. Data unit &amp; sparepart tersimpan otomatis di browser ini.</div>
+    <div class="note">Kategori kesulitan (HIGH / MID / LOW) terisi otomatis dari daftar standar. Satu unit bisa punya lebih dari satu perbaikan &mdash; klik tombol "Pilih perbaikan" lalu centang semua yang perlu dikerjakan. Sparepart dipilih berdasarkan IMEI/serial dari database sparepart (menu "Kelola Sparepart") dan otomatis ditandai terpakai. Data unit &amp; sparepart tersimpan otomatis ke database.</div>
 
     <div class="stats" id="svc_stats"></div>
 
@@ -551,7 +554,7 @@
       <button class="btn" onclick="svcApp.openExtAddModal()">+ Tambah unit eksternal</button>
     </div>
 
-    <div class="note">Untuk unit yang dititipkan/dikirim ke pihak eksternal (cabang lain atau vendor servis) karena perbaikannya tidak bisa ditangani in-house. Kategori tetap otomatis dari daftar standar yang sama. Data tersimpan otomatis di browser ini, terpisah dari data servis internal.</div>
+    <div class="note">Untuk unit yang dititipkan/dikirim ke pihak eksternal (cabang lain atau vendor servis) karena perbaikannya tidak bisa ditangani in-house. Kategori tetap otomatis dari daftar standar yang sama. Data tersimpan otomatis ke database, terpisah dari data servis internal.</div>
 
     <div class="stats" id="svc_extStats"></div>
 
@@ -860,7 +863,7 @@
 <div class="modal-overlay" id="svc_sparepartModalOverlay">
   <div class="modal wide">
     <h2>Kelola database sparepart</h2>
-    <div class="note">Input sparepart harian di sini berdasarkan IMEI/serial masing-masing part. Data tersimpan otomatis di browser ini (tetap disarankan Export Excel sebagai cadangan). Saat servis unit, pilih sparepart lewat tombol "Pilih sparepart" di form unit &mdash; cukup cari berdasarkan IMEI, namanya terisi otomatis dan statusnya berubah jadi Terpakai.</div>
+    <div class="note">Input sparepart harian di sini berdasarkan IMEI/serial masing-masing part. Data tersimpan otomatis ke database (tetap disarankan Export Excel sebagai cadangan). Saat servis unit, pilih sparepart lewat tombol "Pilih sparepart" di form unit &mdash; cukup cari berdasarkan IMEI, namanya terisi otomatis dan statusnya berubah jadi Terpakai.</div>
     <div style="overflow-x:auto;">
       <table class="bulk-table">
         <thead>
@@ -1112,7 +1115,7 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
         <button class="ghost" onclick="stkApp.clearAll()">Kosongkan Daftar</button>
       </div>
       <div class="meta-note">
-        Pakai tab <b>"Stiker IMEI"</b> / <b>"Stiker Sparepart"</b> / <b>"Stiker Flashsale"</b> di paling atas untuk pindah mode — masing-masing punya daftar, pencarian, dan riwayat cetak sendiri-sendiri. Item dengan label <b>BARU</b> adalah yang baru kamu tambahkan sesi ini (belum pernah dicetak) — data lama tidak diberi label. Pilih <b>"Hanya Data Baru"</b> di atas untuk cetak/PDF/Excel khusus data baru saja — muncul dropdown tambahan untuk menyaring lagi berdasarkan <b>tanggal masuk</b>. Setelah selesai, tekan <b>"Tandai Baru → Sudah Ada"</b> supaya batch berikutnya mulai bersih lagi. Grid stiker <b>IMEI/Sparepart</b>: 4 kolom, saling berdempetan tanpa jarak (garis putus-putus antar stiker menyatu jadi satu garis potong, bukan dua garis dengan celah kosong di tengahnya — jadi cukup satu kali gunting lurus per baris/kolom), ukuran asli 40×20mm, tersusun dalam aturan tetap <b>13 baris × 4 kolom = 52 stiker per halaman</b>. Grid stiker <b>Flashsale</b> ukurannya lebih besar (60×30mm), tersusun <b>9 baris × 3 kolom = 27 stiker per halaman</b>. Kertas default <b>F4/Folio (215×330mm)</b> — di F4 tersedia ±60mm ruang sisa untuk 13 baris (jauh di bawah batas maksimumnya yang sekitar 16 baris), jadi sangat aman dari risiko kepotong — kalau data lebih dari kapasitas satu halaman, sisanya otomatis lanjut ke halaman baru. Setiap stiker dijamin utuh, tidak terpotong di antara dua halaman. Untuk PDF, pilih tujuan <b>"Simpan sebagai PDF"</b>. Di kotak dialog cetak, set <b>Margins ke "None"</b> dan matikan <b>"Headers and footers"</b> (biasanya di "More settings") — ini penting supaya ruang cetak benar-benar penuh dipakai, bukan disisakan browser untuk judul/tanggal/URL. Set printer ke <b>ukuran asli/100%</b>. Daftar ini <b>otomatis tersimpan di browser</b> perangkat ini.
+        Pakai tab <b>"Stiker IMEI"</b> / <b>"Stiker Sparepart"</b> / <b>"Stiker Flashsale"</b> di paling atas untuk pindah mode — masing-masing punya daftar, pencarian, dan riwayat cetak sendiri-sendiri. Item dengan label <b>BARU</b> adalah yang baru kamu tambahkan sesi ini (belum pernah dicetak) — data lama tidak diberi label. Pilih <b>"Hanya Data Baru"</b> di atas untuk cetak/PDF/Excel khusus data baru saja — muncul dropdown tambahan untuk menyaring lagi berdasarkan <b>tanggal masuk</b>. Setelah selesai, tekan <b>"Tandai Baru → Sudah Ada"</b> supaya batch berikutnya mulai bersih lagi. Grid stiker <b>IMEI/Sparepart</b>: 4 kolom, saling berdempetan tanpa jarak (garis putus-putus antar stiker menyatu jadi satu garis potong, bukan dua garis dengan celah kosong di tengahnya — jadi cukup satu kali gunting lurus per baris/kolom), ukuran asli 40×20mm, tersusun dalam aturan tetap <b>13 baris × 4 kolom = 52 stiker per halaman</b>. Grid stiker <b>Flashsale</b> ukurannya lebih besar (60×30mm), tersusun <b>9 baris × 3 kolom = 27 stiker per halaman</b>. Kertas default <b>F4/Folio (215×330mm)</b> — di F4 tersedia ±60mm ruang sisa untuk 13 baris (jauh di bawah batas maksimumnya yang sekitar 16 baris), jadi sangat aman dari risiko kepotong — kalau data lebih dari kapasitas satu halaman, sisanya otomatis lanjut ke halaman baru. Setiap stiker dijamin utuh, tidak terpotong di antara dua halaman. Untuk PDF, pilih tujuan <b>"Simpan sebagai PDF"</b>. Di kotak dialog cetak, set <b>Margins ke "None"</b> dan matikan <b>"Headers and footers"</b> (biasanya di "More settings") — ini penting supaya ruang cetak benar-benar penuh dipakai, bukan disisakan browser untuk judul/tanggal/URL. Set printer ke <b>ukuran asli/100%</b>. Daftar ini <b>otomatis tersimpan ke database</b>, bisa diakses dari perangkat mana pun.
       </div>
     </div>
   </div>
@@ -1297,6 +1300,7 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
 </div>
 
 
+<script src="js/auth-guard.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/service.js"></script>
 <script src="js/sticker.js"></script>

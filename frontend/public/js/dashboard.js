@@ -27,7 +27,13 @@ function savePersisted(key, arr){
   if(!endpoint) return;
   fetch(endpoint + '/import', {
     method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: arr })
-  }).catch(()=>{ /* biarkan gagal senyap, sama seperti localStorage penuh di app lama */ });
+  }).then(res => {
+    if(!res.ok) return res.json().catch(()=>({})).then(body => {
+      throw new Error(body.error || ('Server menolak (status ' + res.status + ')'));
+    });
+  }).catch(err => {
+    alert('⚠️ Gagal menyimpan perubahan ke database: ' + err.message + '\n\nCoba refresh halaman lalu ulangi — perubahan terakhir kemungkinan belum tersimpan.');
+  });
 }
 
 let inventoryData = [];
@@ -1841,7 +1847,7 @@ function buildImportUI(){
           if(PERSIST_KEYS[cfg.key]) savePersisted(PERSIST_KEYS[cfg.key], cfg.arr);
           renderEverything();
           statusEl.className = 'imp-status ok';
-          statusEl.textContent = `✓ ${transformed.length} baris berhasil diimpor, dan otomatis tersimpan di browser ini — tetap ada meski file dibuka ulang.`;
+          statusEl.textContent = `✓ ${transformed.length} baris berhasil diimpor, dan otomatis tersimpan ke database — tetap ada meski halaman dibuka ulang atau dari perangkat lain.`;
         }catch(err){
           statusEl.className = 'imp-status err';
           statusEl.textContent = `✗ Gagal impor: ${err.message}`;
