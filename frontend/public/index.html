@@ -493,7 +493,7 @@
       <div class="result-count" id="rkResultCount"></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>ID</th><th>Tipe</th><th>Kategori</th><th>Referensi</th><th>Deskripsi</th><th>Alasan</th><th>Tanggal</th><th>Status</th><th>Nilai</th><th>Pihak Terkait</th><th>Catatan</th><th>Aksi</th></tr></thead>
+          <thead><tr><th>ID</th><th>Tipe</th><th>Kategori</th><th>Referensi</th><th>Deskripsi</th><th>Alasan</th><th>Tanggal</th><th>Status</th><th>Nilai</th><th>Pihak Terkait</th><th>Catatan</th><th>Deadline</th><th>IMEI Baru</th><th>CAS</th><th>Tgl Kembali</th><th>Aksi</th></tr></thead>
           <tbody id="rkTbody"></tbody>
         </table>
       </div>
@@ -1418,6 +1418,7 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
             <option value="Disetujui">Disetujui</option>
             <option value="Disetujui - Refund">Disetujui - Refund</option>
             <option value="Disetujui - Tukar Unit">Disetujui - Tukar Unit</option>
+            <option value="Disetujui - Potong Harga">Disetujui - Potong Harga</option>
             <option value="Ditolak">Ditolak</option>
             <option value="Selesai">Selesai</option>
           </select>
@@ -1434,8 +1435,31 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
         </div>
       </div>
       <div class="dash-field">
-        <label>Catatan</label>
+        <label>Catatan <span style="color:var(--muted);font-weight:400;">(keterangan progress, mis. "Repair", "Menunggu konfirmasi supplier")</span></label>
         <input type="text" id="rkFCatatan" placeholder="-">
+      </div>
+      <div id="rkSupplierProgressWrap" style="display:none;border-top:1px solid var(--border);margin-top:14px;padding-top:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;">📋 Progress Klaim ke Supplier</div>
+        <div class="dash-field-row">
+          <div class="dash-field">
+            <label>Deadline Respon Supplier</label>
+            <input type="date" id="rkFDeadline">
+          </div>
+          <div class="dash-field">
+            <label>Tanggal Kembali <span style="color:var(--muted);font-weight:400;">(kasus selesai)</span></label>
+            <input type="date" id="rkFTanggalKembali">
+          </div>
+        </div>
+        <div class="dash-field-row">
+          <div class="dash-field">
+            <label>IMEI Baru <span style="color:var(--muted);font-weight:400;">(kalau unit ditukar supplier)</span></label>
+            <input type="text" id="rkFImeiBaru" placeholder="15 digit, kosongkan kalau tidak ditukar">
+          </div>
+          <div class="dash-field">
+            <label>CAS (Rp) <span style="color:var(--muted);font-weight:400;">(biaya service dari supplier, jarang ada)</span></label>
+            <input type="number" id="rkFNilaiCas" min="0" step="1000" placeholder="0">
+          </div>
+        </div>
       </div>
       <div class="dash-modal-actions">
         <button class="btn btn-outline" type="button" onclick="closeRkModal()">Batal</button>

@@ -1953,10 +1953,16 @@ function renderRkTable(){
         if(unit) referensiCell += `<div style="color:var(--muted);font-size:10px;margin-top:2px;">Terjual ${fmtRp(unit.harga_jual)} · ${unit.tanggal_terjual || unit.tanggal_masuk}</div>`;
       }
     }
+    const isSupplierUnitClaim = r.tipe==='Retur ke Supplier' && r.kategori_barang==='Unit iPhone';
+    const dash = '<span style="color:var(--muted);">-</span>';
     return `
     <tr>
       <td>${r.id}</td><td>${r.tipe}</td><td>${r.kategori_barang}</td><td>${referensiCell}</td><td>${r.deskripsi}</td>
       <td>${r.alasan}</td><td>${r.tanggal}</td><td>${r.status}</td><td>${fmtRp(r.nilai)}</td><td>${r.pihak_terkait}</td><td>${r.catatan}</td>
+      <td>${isSupplierUnitClaim ? (r.deadline || dash) : dash}</td>
+      <td>${isSupplierUnitClaim ? (r.imei_baru || dash) : dash}</td>
+      <td>${isSupplierUnitClaim && r.nilai_cas>0 ? fmtRp(r.nilai_cas) : dash}</td>
+      <td>${isSupplierUnitClaim ? (r.tanggal_kembali || dash) : dash}</td>
       <td><div class="row-actions"><button type="button" onclick="openRkModal('${r.id}')">Edit</button><button type="button" class="del" onclick="deleteRkConfirm('${r.id}')">Hapus</button></div></td>
     </tr>`;}).join('');
 }
@@ -2016,6 +2022,7 @@ function openRkModalFromGagalQc(imei){
   document.getElementById('rkFDeskripsi').value = `${d.model} ${d.kapasitas} ${d.warna}`.replace(/\s+/g,' ').trim();
   document.getElementById('rkFAlasan').value = (d.catatan && d.catatan!=='-') ? d.catatan : 'Gagal QC';
   document.getElementById('rkFPihakTerkait').value = d.supplier || '';
+  toggleRkSupplierProgressWrap();
 }
 window.openRkModalFromGagalQc = openRkModalFromGagalQc;
 
@@ -2040,6 +2047,10 @@ function openRkModal(id){
     document.getElementById('rkFNilai').value = r.nilai;
     document.getElementById('rkFPihakTerkait').value = r.pihak_terkait || '';
     document.getElementById('rkFCatatan').value = r.catatan || '';
+    document.getElementById('rkFDeadline').value = r.deadline || '';
+    document.getElementById('rkFTanggalKembali').value = r.tanggal_kembali || '';
+    document.getElementById('rkFImeiBaru').value = r.imei_baru || '';
+    document.getElementById('rkFNilaiCas').value = r.nilai_cas || '';
   }else{
     document.getElementById('rkFTipeForm').value = 'Retur Cabang';
     document.getElementById('rkFKategoriForm').value = '';
@@ -2052,10 +2063,27 @@ function openRkModal(id){
     document.getElementById('rkFNilai').value = '';
     document.getElementById('rkFPihakTerkait').value = '';
     document.getElementById('rkFCatatan').value = '';
+    document.getElementById('rkFDeadline').value = '';
+    document.getElementById('rkFTanggalKembali').value = '';
+    document.getElementById('rkFImeiBaru').value = '';
+    document.getElementById('rkFNilaiCas').value = '';
   }
+  toggleRkSupplierProgressWrap();
   document.getElementById('rkModalOverlay').classList.add('open');
 }
 window.openRkModal = openRkModal;
+
+// Fieldset "Progress Klaim ke Supplier" (Deadline/IMEI Baru/CAS/Tgl Kembali) cuma relevan buat
+// klaim Unit iPhone yang diretur ke supplier (alur: Report QC Gagal QC -> komplain ke supplier
+// -> nunggu keputusan potong harga / tukar unit, kadang dapat CAS juga) — disembunyikan di kasus lain
+// (Retur Cabang, klaim Sparepart/Dusbox/Aksesoris) biar modalnya nggak penuh field yang tidak relevan.
+function toggleRkSupplierProgressWrap(){
+  const relevant = document.getElementById('rkFTipeForm').value === 'Retur ke Supplier'
+    && document.getElementById('rkFKategoriForm').value.trim() === 'Unit iPhone';
+  document.getElementById('rkSupplierProgressWrap').style.display = relevant ? 'block' : 'none';
+}
+document.getElementById('rkFTipeForm').addEventListener('change', toggleRkSupplierProgressWrap);
+document.getElementById('rkFKategoriForm').addEventListener('input', toggleRkSupplierProgressWrap);
 
 function closeRkModal(){
   document.getElementById('rkModalOverlay').classList.remove('open');
@@ -2075,6 +2103,10 @@ function saveRkForm(){
   const nilai = parseFloat(document.getElementById('rkFNilai').value) || 0;
   const pihakTerkait = document.getElementById('rkFPihakTerkait').value.trim();
   const catatan = document.getElementById('rkFCatatan').value.trim();
+  const deadline = document.getElementById('rkFDeadline').value || null;
+  const tanggalKembali = document.getElementById('rkFTanggalKembali').value || null;
+  const imeiBaru = document.getElementById('rkFImeiBaru').value.trim() || null;
+  const nilaiCas = parseFloat(document.getElementById('rkFNilaiCas').value) || 0;
 
   if(!kategori || !deskripsi || !alasan || !tanggal){
     alert('Lengkapi dulu Kategori Barang, Deskripsi, Alasan & Tanggal.');
@@ -2084,6 +2116,7 @@ function saveRkForm(){
   const payload = {
     tipe, kategori_barang: kategori, referensi, imei: imei || null, deskripsi, alasan, tanggal,
     status, nilai, pihak_terkait: pihakTerkait, catatan,
+    deadline, tanggal_kembali: tanggalKembali, imei_baru: imeiBaru, nilai_cas: nilaiCas,
   };
 
   if(id){
@@ -2444,14 +2477,15 @@ const importConfigs = [
   },
   {
     key:'returklaim', label:'Retur & Klaim', arr:returKlaimData,
-    columns:['tipe','kategori_barang','referensi','imei','deskripsi','alasan','tanggal','status','nilai','pihak_terkait','catatan'],
-    example:{tipe:'Retur Cabang', kategori_barang:'Unit iPhone', referensi:'U0001 / IMEI 351234567890123', imei:'351234567890123', deskripsi:'iPhone 15 Blue 256GB', alasan:'Unit mati total', tanggal:'2026-07-20', status:'Diproses', nilai:15000000, pihak_terkait:'Andi Wijaya', catatan:'-'},
+    columns:['tipe','kategori_barang','referensi','imei','deskripsi','alasan','tanggal','status','nilai','pihak_terkait','catatan','deadline','imei_baru','nilai_cas','tanggal_kembali'],
+    example:{tipe:'Retur ke Supplier', kategori_barang:'Unit iPhone', referensi:'U0001 / IMEI 351234567890123', imei:'351234567890123', deskripsi:'iPhone 15 Blue 256GB', alasan:'Unit mati total', tanggal:'2026-07-20', status:'Diproses', nilai:15000000, pihak_terkait:'CV Gadget Prima', catatan:'Repair', deadline:'2026-08-05', imei_baru:'', nilai_cas:0, tanggal_kembali:''},
     transform:(row, idx)=>({
       id: row.id || ('IMP-RK'+String(idx+1).padStart(4,'0')),
       tipe: row.tipe || 'Retur Cabang', kategori_barang: row.kategori_barang||'', referensi: row.referensi||'',
       imei: row.imei ? String(row.imei).trim() : '',
       deskripsi: row.deskripsi||'', alasan: row.alasan||'', tanggal: row.tanggal || REF_TODAY_STR,
-      status: row.status || 'Diajukan', nilai: Number(row.nilai)||0, pihak_terkait: row.pihak_terkait||'', catatan: row.catatan||''
+      status: row.status || 'Diajukan', nilai: Number(row.nilai)||0, pihak_terkait: row.pihak_terkait||'', catatan: row.catatan||'',
+      deadline: row.deadline||null, imei_baru: row.imei_baru||'', nilai_cas: Number(row.nilai_cas)||0, tanggal_kembali: row.tanggal_kembali||null,
     })
   }
 ];

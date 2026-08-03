@@ -112,10 +112,18 @@ CREATE TABLE IF NOT EXISTS retur_klaim (
   deskripsi TEXT,
   alasan TEXT,
   tanggal DATE NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('Diajukan','Diproses','Disetujui','Disetujui - Refund','Disetujui - Tukar Unit','Ditolak','Selesai')),
+  status TEXT NOT NULL CHECK (status IN ('Diajukan','Diproses','Disetujui','Disetujui - Refund','Disetujui - Tukar Unit','Disetujui - Potong Harga','Ditolak','Selesai')),
   nilai NUMERIC(14,2) DEFAULT 0,
   pihak_terkait TEXT,
-  catatan TEXT
+  catatan TEXT,
+  -- Kolom di bawah ini khusus buat men-track progres klaim unit iPhone ke supplier
+  -- (retur karena Gagal QC) sampai tuntas: kapan target respons supplier, IMEI unit
+  -- pengganti kalau ditukar, biaya service yang kadang (jarang) diberikan supplier
+  -- meski unitnya tidak diretur (CAS), dan kapan kasusnya benar-benar selesai.
+  deadline DATE,
+  imei_baru TEXT,
+  nilai_cas NUMERIC(14,2) DEFAULT 0,
+  tanggal_kembali DATE
 );
 CREATE INDEX IF NOT EXISTS idx_returklaim_imei ON retur_klaim(imei);
 CREATE INDEX IF NOT EXISTS idx_returklaim_status ON retur_klaim(status);
