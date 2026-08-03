@@ -177,6 +177,7 @@
   .subtab-btn{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;transition:color .2s var(--ease),background .2s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease),transform .2s var(--ease);}
   .subtab-btn:hover{color:var(--text);border-color:var(--accent);transform:translateY(-1px);}
   .subtab-btn.active{color:#fff;background:linear-gradient(135deg,var(--accent),#2563eb);border-color:var(--accent);box-shadow:var(--glow-accent);}
+  .subtab-badge{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:#f59e0b;color:#1a1207;font-size:10px;font-weight:800;vertical-align:middle;}
   .subtab-content{display:block;}
 
   @keyframes fadeSlideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}

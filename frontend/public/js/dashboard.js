@@ -123,8 +123,9 @@ function computeKPI(data){
   const flash = byStatus('Flash Sale');
   const trouble = byStatus('Trouble');
   const sold = byStatus('Terjual');
+  const qcPending = data.filter(d=>normalizeReportQC(d.report_qc)==='Pending QC').length;
   const nilaiStok = data.filter(d=>effectiveStatus(d)!=='Terjual').reduce((a,d)=>a+d.harga_beli,0);
-  return {total, ready, fifo, flash, trouble, sold, nilaiStok};
+  return {total, ready, fifo, flash, trouble, sold, qcPending, nilaiStok};
 }
 
 function renderKPI(){
@@ -134,16 +135,28 @@ function renderKPI(){
     {label:'Ready Stock', value:k.ready, sub:'siap dijual', cls:'c-green'},
     {label:'Prioritas FIFO', value:k.fifo, sub:'stok usia >60 hari', cls:'c-amber'},
     {label:'Flash Sale', value:k.flash, sub:'unit promo aktif', cls:'c-purple'},
+    {label:'Pending QC', value:k.qcPending, sub:'unit baru, belum dicek teknis', cls:'c-amber', onclick:"jumpToSubtab('reportqc')"},
     {label:'Trouble', value:k.trouble, sub:'termasuk otomatis dari Gagal QC', cls:'c-red'},
     {label:'Nilai Stok Aktif', value:fmtRp(k.nilaiStok), sub:'harga beli, non-terjual', cls:'c-cyan'},
   ];
   document.getElementById('kpiGrid').innerHTML = cards.map(c=>`
-    <div class="kpi ${c.cls}">
+    <div class="kpi ${c.cls}"${c.onclick?` style="cursor:pointer;" onclick="${c.onclick}"`:''}>
       <div class="label">${c.label}</div>
       <div class="value">${c.value}</div>
       <div class="sub">${c.sub}</div>
     </div>`).join('');
+
+  const qcBadge = document.getElementById('qcTabBadge');
+  if(qcBadge){
+    if(k.qcPending>0){ qcBadge.textContent = k.qcPending; qcBadge.style.display = 'inline-block'; }
+    else { qcBadge.style.display = 'none'; }
+  }
 }
+
+function jumpToSubtab(name){
+  document.querySelector(`.subtab-btn[data-subtab="${name}"]`)?.click();
+}
+window.jumpToSubtab = jumpToSubtab;
 
 // ---------- Charts ----------
 Chart.defaults.color = '#8b93ab';
