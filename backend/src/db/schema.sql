@@ -117,10 +117,10 @@ CREATE TABLE IF NOT EXISTS retur_klaim (
   pihak_terkait TEXT,
   catatan TEXT,
   -- Kolom di bawah ini khusus buat men-track progres klaim unit iPhone ke supplier
-  -- (retur karena Gagal QC) sampai tuntas: kapan target respons supplier, IMEI unit
-  -- pengganti kalau ditukar, biaya service yang kadang (jarang) diberikan supplier
-  -- meski unitnya tidak diretur (CAS), dan kapan kasusnya benar-benar selesai.
-  deadline DATE,
+  -- (retur karena Gagal QC) sampai tuntas: IMEI unit pengganti kalau ditukar, biaya
+  -- service yang kadang (jarang) diberikan supplier meski unitnya tidak diretur
+  -- (CAS), dan kapan kasusnya benar-benar selesai. Tidak ada kolom deadline —
+  -- kapan supplier merespon di luar kendali gudang, jadi sengaja tidak ditrack.
   imei_baru TEXT,
   nilai_cas NUMERIC(14,2) DEFAULT 0,
   tanggal_kembali DATE
