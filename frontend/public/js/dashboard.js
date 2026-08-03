@@ -1961,6 +1961,66 @@ function renderRkTable(){
     </tr>`;}).join('');
 }
 
+// ---------- Retur & Klaim: sub-panel otomatis "Unit Gagal QC" ----------
+// Sumber datanya bukan tabel tersendiri — murni turunan dari inventoryData yang
+// report_qc-nya "Gagal QC" (di-set lewat Edit Unit / Report QC), jadi selalu sinkron
+// tanpa perlu input manual. Kolom Type/Kendala/Supplier meniru format rekap Excel yang
+// biasa dipakai untuk klaim ke supplier.
+function populateRkGagalQcFilters(){
+  const gagal = inventoryData.filter(d=>normalizeReportQC(d.report_qc)==='Gagal QC');
+  const suppliers = [...new Set(gagal.map(d=>d.supplier))].sort();
+  document.getElementById('rkGagalQcFSupplier').innerHTML = '<option value="">Semua Supplier</option>' + suppliers.map(s=>`<option value="${s}">${s}</option>`).join('');
+}
+
+function renderRkGagalQc(){
+  const search = document.getElementById('rkGagalQcSearch').value.toLowerCase();
+  const fSupplier = document.getElementById('rkGagalQcFSupplier').value;
+  let rows = inventoryData.filter(d=>normalizeReportQC(d.report_qc)==='Gagal QC');
+  if(fSupplier) rows = rows.filter(d=>d.supplier===fSupplier);
+  if(search){
+    rows = rows.filter(d=>`${d.model} ${d.kapasitas} ${d.warna} ${d.imei} ${d.catatan} ${d.supplier}`.toLowerCase().includes(search));
+  }
+  rows.sort((a,b)=> new Date(b.tanggal_masuk)-new Date(a.tanggal_masuk));
+
+  document.getElementById('rkGagalQcCount').textContent = `(${rows.length} unit)`;
+  document.getElementById('rkGagalQcTbody').innerHTML = rows.map(d=>{
+    const type = `${d.model} ${d.kapasitas} ${d.warna}`.replace(/\s+/g,' ').trim();
+    const rk = findRkByImei(d.imei);
+    const statusCell = rk
+      ? `<span class="pill link-badge" onclick="jumpToRetur('${d.imei}')" title="Lihat klaim yang sudah dibuat">✅ ${rk.status}</span>`
+      : `<span style="color:var(--muted);">⏳ Belum diklaim</span>`;
+    const aksiCell = rk
+      ? `<button type="button" onclick="jumpToRetur('${d.imei}')">Lihat Klaim</button>`
+      : `<button type="button" onclick="openRkModalFromGagalQc('${d.imei}')">+ Buat Klaim</button>`;
+    return `
+    <tr>
+      <td>${type}</td>
+      <td><span class="link-badge" onclick="jumpToDataUnit('${d.imei}')" title="Lihat di Data Unit">${d.imei} 🔗</span></td>
+      <td>${d.catatan && d.catatan!=='-' ? d.catatan : '<span style="color:var(--muted);">- (belum ada catatan)</span>'}</td>
+      <td>${d.supplier}</td>
+      <td>${statusCell}</td>
+      <td><div class="row-actions">${aksiCell}</div></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center;">Tidak ada unit Gagal QC saat ini.</td></tr>';
+}
+
+// Prefill modal Tambah Retur/Klaim dari satu unit Gagal QC, biar tinggal cek & simpan.
+function openRkModalFromGagalQc(imei){
+  const d = inventoryData.find(u=>String(u.imei).trim()===String(imei).trim());
+  if(!d) return;
+  openRkModal();
+  document.getElementById('rkFTipeForm').value = 'Retur ke Supplier';
+  document.getElementById('rkFKategoriForm').value = 'Unit iPhone';
+  document.getElementById('rkFReferensi').value = `${d.id} / IMEI ${d.imei}`;
+  document.getElementById('rkFImei').value = d.imei;
+  document.getElementById('rkFDeskripsi').value = `${d.model} ${d.kapasitas} ${d.warna}`.replace(/\s+/g,' ').trim();
+  document.getElementById('rkFAlasan').value = (d.catatan && d.catatan!=='-') ? d.catatan : 'Gagal QC';
+  document.getElementById('rkFPihakTerkait').value = d.supplier || '';
+}
+window.openRkModalFromGagalQc = openRkModalFromGagalQc;
+
+['rkGagalQcSearch','rkGagalQcFSupplier'].forEach(id=>document.getElementById(id).addEventListener('input', renderRkGagalQc));
+
 // ---------- Retur & Klaim: Tambah/Edit/Hapus (modal) ----------
 function openRkModal(id){
   const isEdit = !!id;
@@ -2542,6 +2602,8 @@ function renderEverything(){
   renderRkCharts();
   populateRkFilters();
   renderRkTable();
+  populateRkGagalQcFilters();
+  renderRkGagalQc();
 }
 
 // ---------- Bridge: sinkronisasi stok Sparepart dengan tab Unit Service ----------

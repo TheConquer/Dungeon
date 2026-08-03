@@ -456,6 +456,22 @@
       <div class="panel"><h2>Status per Tipe</h2><div class="chart-box"><canvas id="chartRkStatus"></canvas></div></div>
       <div class="panel"><h2>Berdasarkan Kategori Barang</h2><div class="chart-box"><canvas id="chartRkKategori"></canvas></div></div>
     </div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">🚫 Unit Gagal QC — Klaim ke Supplier <span class="count" id="rkGagalQcCount"></span></h2>
+      </div>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Daftar ini otomatis terisi dari unit berstatus <b>Gagal QC</b> di subtab Report QC — tidak perlu input manual. Klik <b>+ Buat Klaim</b> untuk langsung ajukan klaim ke supplier terkait.</p>
+      <div class="filters">
+        <input type="text" id="rkGagalQcSearch" placeholder="Cari tipe, IMEI, kendala, supplier...">
+        <select id="rkGagalQcFSupplier"><option value="">Semua Supplier</option></select>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Type</th><th>IMEI</th><th>Kendala</th><th>Supplier</th><th>Status Klaim</th><th>Aksi</th></tr></thead>
+          <tbody id="rkGagalQcTbody"></tbody>
+        </table>
+      </div>
+    </div>
     <div class="panel">
       <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
         <h2 style="margin:0;">Daftar Retur &amp; Klaim <span class="count" id="rkTableCount"></span></h2>
