@@ -93,7 +93,10 @@
     <div class="panel">
       <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
         <h2 style="margin:0;">Daftar Unit Inventory <span class="count" id="tableCount"></span></h2>
-        <button class="btn" type="button" onclick="openUnitModal()">+ Tambah Unit</button>
+        <div class="btn-row" style="margin-bottom:0;">
+          <button class="btn" type="button" onclick="openUnitModal()">+ Tambah Unit</button>
+          <button class="btn btn-outline" type="button" onclick="openBulkModal('unit')">+ Tambah Massal</button>
+        </div>
       </div>
       <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Report QC lengkap per tanggal kedatangan ada di subtab <b>✅ Report QC</b> — klik badge report QC atau keterkaitan di bawah untuk lompat langsung.</p>
       <div class="filters">
@@ -349,7 +352,10 @@
     <div class="panel">
       <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
         <h2 style="margin:0;">Daftar Stok Dusbox <span class="count" id="dusboxTableCount"></span></h2>
-        <button class="btn" type="button" onclick="openStockModal('dusbox')">+ Tambah Dusbox</button>
+        <div class="btn-row" style="margin-bottom:0;">
+          <button class="btn" type="button" onclick="openStockModal('dusbox')">+ Tambah Dusbox</button>
+          <button class="btn btn-outline" type="button" onclick="openBulkModal('dusbox')">+ Tambah Massal</button>
+        </div>
       </div>
       <div class="filters">
         <input type="text" id="dusboxSearch" placeholder="Cari model, SKU...">
@@ -383,7 +389,10 @@
     <div class="panel">
       <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
         <h2 style="margin:0;">Daftar Stok Aksesoris <span class="count" id="aksesorisTableCount"></span></h2>
-        <button class="btn" type="button" onclick="openStockModal('aksesoris')">+ Tambah Aksesoris</button>
+        <div class="btn-row" style="margin-bottom:0;">
+          <button class="btn" type="button" onclick="openStockModal('aksesoris')">+ Tambah Aksesoris</button>
+          <button class="btn btn-outline" type="button" onclick="openBulkModal('aksesoris')">+ Tambah Massal</button>
+        </div>
       </div>
       <div class="filters">
         <input type="text" id="aksesorisSearch" placeholder="Cari jenis, SKU...">
@@ -417,7 +426,10 @@
     <div class="panel">
       <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
         <h2 style="margin:0;">Daftar Stok Sparepart <span class="count" id="sparepartTableCount"></span></h2>
-        <button class="btn" type="button" onclick="openStockModal('sparepart')">+ Tambah Sparepart</button>
+        <div class="btn-row" style="margin-bottom:0;">
+          <button class="btn" type="button" onclick="openStockModal('sparepart')">+ Tambah Sparepart</button>
+          <button class="btn btn-outline" type="button" onclick="openBulkModal('sparepart')">+ Tambah Massal</button>
+        </div>
       </div>
       <div class="filters">
         <input type="text" id="sparepartSearch" placeholder="Cari jenis, model, SKU...">
@@ -447,7 +459,10 @@
     <div class="panel">
       <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
         <h2 style="margin:0;">Daftar Retur &amp; Klaim <span class="count" id="rkTableCount"></span></h2>
-        <button class="btn" type="button" onclick="openRkModal()">+ Tambah Retur/Klaim</button>
+        <div class="btn-row" style="margin-bottom:0;">
+          <button class="btn" type="button" onclick="openRkModal()">+ Tambah Retur/Klaim</button>
+          <button class="btn btn-outline" type="button" onclick="openBulkModal('returklaim')">+ Tambah Massal</button>
+        </div>
       </div>
       <div class="filters">
         <input type="text" id="rkSearch" placeholder="Cari referensi, deskripsi, pihak terkait...">
@@ -1232,6 +1247,41 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
       <div class="dash-modal-actions">
         <button class="btn btn-outline" type="button" onclick="closeUnitModal()">Batal</button>
         <button class="btn" type="button" onclick="saveUnitForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal input massal — dipakai bersama untuk 5 panel (Unit/Dusbox/Aksesoris/Sparepart/
+       Retur & Klaim). Kolom tabel & hint paste-nya digambar ulang oleh JS sesuai kategori
+       (lihat BULK_CONFIGS di dashboard.js), jadi HTML-nya generik. Ini MENAMBAH baris baru
+       ke data yang sudah ada (bukan menimpa semua data seperti fitur Import Data). -->
+  <div class="dash-modal-overlay" id="bulkModalOverlay">
+    <div class="dash-modal" style="max-width:960px;">
+      <h2 id="bulkModalTitle">Tambah Massal</h2>
+      <input type="hidden" id="bulkFormCategory">
+      <div class="btn-row" style="margin-bottom:12px;">
+        <button class="btn" type="button" id="bulkModeTableBtn" onclick="switchBulkMode('table')">Tabel Baris</button>
+        <button class="btn btn-outline" type="button" id="bulkModePasteBtn" onclick="switchBulkMode('paste')">Tempel dari Excel</button>
+      </div>
+      <div id="bulkModeTablePanel">
+        <div class="table-scroll" style="max-height:320px;">
+          <table>
+            <thead><tr id="bulkTableHead"></tr></thead>
+            <tbody id="bulkTableBody"></tbody>
+          </table>
+        </div>
+        <div class="btn-row" style="margin-top:10px;margin-bottom:0;">
+          <button class="btn btn-outline" type="button" onclick="addBulkRow()">+ Tambah Baris</button>
+        </div>
+      </div>
+      <div id="bulkModePastePanel" style="display:none;">
+        <p style="color:var(--muted);font-size:11px;" id="bulkPasteHint"></p>
+        <textarea id="bulkPasteText" rows="10" style="width:100%;background:#0f1524;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:monospace;font-size:12px;box-sizing:border-box;" placeholder="Copy beberapa baris dari Excel/Spreadsheet (Ctrl+C), lalu paste di sini (Ctrl+V)..."></textarea>
+      </div>
+      <div id="bulkStatusMsg" style="font-size:12px;margin-top:10px;color:var(--muted);"></div>
+      <div class="dash-modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeBulkModal()">Batal</button>
+        <button class="btn" type="button" onclick="saveBulkForm()">Simpan Semua</button>
       </div>
     </div>
   </div>

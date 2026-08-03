@@ -2038,6 +2038,233 @@ function deleteRkConfirm(id){
 window.deleteRkConfirm = deleteRkConfirm;
 ['rkSearch','rkFTipe','rkFKategori','rkFStatus'].forEach(id=>document.getElementById(id).addEventListener('input', renderRkTable));
 
+// ---------- Input Massal (tabel banyak baris ATAU tempel dari Excel) ----------
+// Dipakai bersama 5 panel: Unit/Dusbox/Aksesoris/Sparepart/Retur & Klaim. Ini MENAMBAH baris
+// baru ke data yang sudah ada — beda dari fitur Import Data yang MENGGANTI seluruh dataset.
+function makeStockBulkConfig(category, getArr, persistKey, defaultReorder){
+  const prefix = {dusbox:'DB-', aksesoris:'ACC-', sparepart:'SP-'}[category];
+  const label = {dusbox:'Dusbox', aksesoris:'Aksesoris', sparepart:'Sparepart'}[category];
+  return {
+    label, getArr,
+    columns: [
+      {key:'jenis', label:'Jenis*', type:'text', width:150},
+      {key:'kompatibel_model', label:'Kompatibel', type:'text', width:110, list:'stockModelList'},
+      {key:'kondisi', label:'Kondisi*', type:'text', width:100},
+      {key:'qty', label:'Qty*', type:'number', width:70},
+      {key:'supplier', label:'Supplier*', type:'text', width:140},
+      {key:'gudang', label:'Gudang*', type:'text', width:140},
+      {key:'harga_beli', label:'Harga Beli', type:'number', width:110},
+      {key:'harga_jual', label:'Harga Jual', type:'number', width:110},
+    ],
+    pasteHint: 'Urutan kolom: Jenis, Kompatibel Model, Kondisi, Qty, Supplier, Gudang, Harga Beli, Harga Jual. Pisahkan tiap kolom dengan Tab (langsung dari paste Excel), satu baris per SKU.',
+    validateRow(v){
+      if(!v.jenis) return 'Jenis wajib diisi';
+      if(!v.kondisi) return 'Kondisi wajib diisi';
+      if(!v.supplier) return 'Supplier wajib diisi';
+      if(!v.gudang) return 'Gudang wajib diisi';
+      return null;
+    },
+    buildRow(v){
+      return {
+        sku_id: nextStockSkuId(getArr(), prefix), jenis: v.jenis, kompatibel_model: v.kompatibel_model||'',
+        kondisi: v.kondisi, qty: Number(v.qty)||0, satuan: 'pcs',
+        harga_beli: Number(v.harga_beli)||0, harga_jual: Number(v.harga_jual)||0,
+        supplier: v.supplier, gudang: v.gudang, reorder_point: defaultReorder, tanggal_update: REF_TODAY_STR,
+      };
+    },
+    afterSave(){ savePersisted(persistKey, getArr()); renderEverything(); },
+  };
+}
+
+const BULK_CONFIGS = {
+  unit: {
+    label: 'Unit iPhone', getArr: () => inventoryData, dupeKey: 'imei',
+    columns: [
+      {key:'imei', label:'IMEI*', type:'text', width:120},
+      {key:'model', label:'Model*', type:'text', width:130, list:'unitModelList'},
+      {key:'kapasitas', label:'Kapasitas*', type:'text', width:90},
+      {key:'warna', label:'Warna*', type:'text', width:110},
+      {key:'supplier', label:'Supplier*', type:'text', width:140},
+      {key:'gudang', label:'Gudang*', type:'text', width:140},
+      {key:'tanggal_masuk', label:'Tgl Masuk*', type:'date', width:130},
+      {key:'harga_beli', label:'Harga Beli', type:'number', width:110},
+      {key:'harga_jual', label:'Harga Jual', type:'number', width:110},
+    ],
+    pasteHint: 'Urutan kolom: IMEI, Model, Kapasitas, Warna, Supplier, Gudang, Tanggal Masuk (YYYY-MM-DD), Harga Beli, Harga Jual. Pisahkan tiap kolom dengan Tab (langsung dari paste Excel), satu baris per unit.',
+    validateRow(v){
+      if(!/^\d{15}$/.test(v.imei||'')) return 'IMEI harus 15 digit angka';
+      if(!v.model) return 'Model wajib diisi';
+      if(!v.kapasitas) return 'Kapasitas wajib diisi';
+      if(!v.warna) return 'Warna wajib diisi';
+      if(!v.supplier) return 'Supplier wajib diisi';
+      if(!v.gudang) return 'Gudang wajib diisi';
+      if(!v.tanggal_masuk) return 'Tanggal masuk wajib diisi';
+      if(inventoryData.some(d=>d.imei===v.imei)) return 'IMEI sudah dipakai unit lain';
+      return null;
+    },
+    buildRow(v){
+      return {
+        id: nextUnitId(), imei: v.imei, model: v.model, kapasitas: v.kapasitas, warna: v.warna,
+        supplier: v.supplier, gudang: v.gudang, tanggal_masuk: v.tanggal_masuk,
+        status: 'Ready Stock', report_qc: 'Pending QC', catatan: '-',
+        harga_beli: Number(v.harga_beli)||0, harga_jual: Number(v.harga_jual)||0,
+        tanggal_terjual: null, alasan_flashsale: null,
+      };
+    },
+    afterSave(){ saveInventoryData(); renderEverything(); },
+  },
+  dusbox: null, aksesoris: null, sparepart: null,
+  returklaim: {
+    label: 'Retur & Klaim', getArr: () => returKlaimData,
+    columns: [
+      {key:'tipe', label:'Tipe*', type:'select', options:['Retur Cabang','Retur ke Supplier'], width:130},
+      {key:'kategori_barang', label:'Kategori*', type:'text', width:120},
+      {key:'referensi', label:'Referensi', type:'text', width:130},
+      {key:'deskripsi', label:'Deskripsi*', type:'text', width:150},
+      {key:'alasan', label:'Alasan*', type:'text', width:150},
+      {key:'tanggal', label:'Tanggal*', type:'date', width:130},
+      {key:'nilai', label:'Nilai', type:'number', width:110},
+      {key:'pihak_terkait', label:'Pihak Terkait', type:'text', width:130},
+    ],
+    pasteHint: 'Urutan kolom: Tipe (persis "Retur Cabang" atau "Retur ke Supplier"), Kategori Barang, Referensi, Deskripsi, Alasan, Tanggal (YYYY-MM-DD), Nilai, Pihak Terkait. Pisahkan dengan Tab.',
+    validateRow(v){
+      if(v.tipe!=='Retur Cabang' && v.tipe!=='Retur ke Supplier') return 'Tipe harus persis "Retur Cabang" atau "Retur ke Supplier"';
+      if(!v.kategori_barang) return 'Kategori Barang wajib diisi';
+      if(!v.deskripsi) return 'Deskripsi wajib diisi';
+      if(!v.alasan) return 'Alasan wajib diisi';
+      if(!v.tanggal) return 'Tanggal wajib diisi';
+      return null;
+    },
+    buildRow(v){
+      return {
+        id: nextRkId(v.tipe), tipe: v.tipe, kategori_barang: v.kategori_barang, referensi: v.referensi||'',
+        imei: null, deskripsi: v.deskripsi, alasan: v.alasan, tanggal: v.tanggal, status: 'Diajukan',
+        nilai: Number(v.nilai)||0, pihak_terkait: v.pihak_terkait||'', catatan: '',
+      };
+    },
+    afterSave(){ saveReturKlaimData(); renderEverything(); },
+  },
+};
+BULK_CONFIGS.dusbox = makeStockBulkConfig('dusbox', ()=>dusboxData, PERSIST_KEYS.dusbox, 10);
+BULK_CONFIGS.aksesoris = makeStockBulkConfig('aksesoris', ()=>aksesorisData, PERSIST_KEYS.aksesoris, 15);
+BULK_CONFIGS.sparepart = makeStockBulkConfig('sparepart', ()=>sparepartData, PERSIST_KEYS.sparepart, 5);
+
+let bulkMode = 'table';
+
+function buildBulkTableHead(cfg){
+  document.getElementById('bulkTableHead').innerHTML = cfg.columns.map(c=>`<th>${c.label}</th>`).join('') + '<th></th>';
+}
+
+function addBulkRow(){
+  const category = document.getElementById('bulkFormCategory').value;
+  const cfg = BULK_CONFIGS[category];
+  if(!cfg) return;
+  const tr = document.createElement('tr');
+  tr.innerHTML = cfg.columns.map(c=>{
+    if(c.type==='select'){
+      return `<td><select data-key="${c.key}" style="width:100%;min-width:${c.width||90}px;">${c.options.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></td>`;
+    }
+    const listAttr = c.list ? ` list="${c.list}"` : '';
+    return `<td><input type="${c.type}" data-key="${c.key}"${listAttr} style="width:100%;min-width:${c.width||90}px;"></td>`;
+  }).join('') + `<td><button type="button" class="del" onclick="this.closest('tr').remove()">×</button></td>`;
+  document.getElementById('bulkTableBody').appendChild(tr);
+}
+window.addBulkRow = addBulkRow;
+
+function openBulkModal(category){
+  const cfg = BULK_CONFIGS[category];
+  if(!cfg) return;
+  document.getElementById('bulkFormCategory').value = category;
+  document.getElementById('bulkModalTitle').textContent = 'Tambah Massal — ' + cfg.label;
+  document.getElementById('bulkPasteHint').textContent = cfg.pasteHint;
+  document.getElementById('bulkPasteText').value = '';
+  document.getElementById('bulkStatusMsg').textContent = '';
+  buildBulkTableHead(cfg);
+  document.getElementById('bulkTableBody').innerHTML = '';
+  addBulkRow(); addBulkRow(); addBulkRow();
+  switchBulkMode('table');
+  document.getElementById('bulkModalOverlay').classList.add('open');
+}
+window.openBulkModal = openBulkModal;
+
+function closeBulkModal(){
+  document.getElementById('bulkModalOverlay').classList.remove('open');
+}
+window.closeBulkModal = closeBulkModal;
+
+function switchBulkMode(mode){
+  bulkMode = mode;
+  document.getElementById('bulkModeTablePanel').style.display = mode==='table' ? 'block' : 'none';
+  document.getElementById('bulkModePastePanel').style.display = mode==='paste' ? 'block' : 'none';
+  document.getElementById('bulkModeTableBtn').className = 'btn' + (mode==='table' ? '' : ' btn-outline');
+  document.getElementById('bulkModePasteBtn').className = 'btn' + (mode==='paste' ? '' : ' btn-outline');
+}
+window.switchBulkMode = switchBulkMode;
+
+function readBulkTableRows(cfg){
+  const rows = [...document.querySelectorAll('#bulkTableBody tr')];
+  return rows.map(tr=>{
+    const v = {};
+    cfg.columns.forEach(c=>{
+      const el = tr.querySelector(`[data-key="${c.key}"]`);
+      v[c.key] = el ? el.value.trim() : '';
+    });
+    return v;
+  }).filter(v => Object.values(v).some(x=>x));
+}
+
+function parsePastedBulkRows(cfg, text){
+  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  return lines.map(line=>{
+    const parts = line.includes('\t') ? line.split('\t') : line.split('|');
+    const v = {};
+    cfg.columns.forEach((c,i)=>{ v[c.key] = (parts[i]||'').trim(); });
+    return v;
+  });
+}
+
+function saveBulkForm(){
+  const category = document.getElementById('bulkFormCategory').value;
+  const cfg = BULK_CONFIGS[category];
+  if(!cfg) return;
+
+  const rawRows = bulkMode==='table' ? readBulkTableRows(cfg) : parsePastedBulkRows(cfg, document.getElementById('bulkPasteText').value);
+  const statusEl = document.getElementById('bulkStatusMsg');
+  if(rawRows.length===0){
+    statusEl.textContent = 'Belum ada baris untuk disimpan.';
+    statusEl.style.color = 'var(--danger)';
+    return;
+  }
+
+  let added = 0;
+  const errors = [];
+  const seenKeys = new Set();
+  rawRows.forEach((v, idx)=>{
+    const err = cfg.validateRow(v);
+    if(err){ errors.push(`Baris ${idx+1}: ${err}`); return; }
+    if(cfg.dupeKey){
+      const k = v[cfg.dupeKey];
+      if(seenKeys.has(k)){ errors.push(`Baris ${idx+1}: ${cfg.dupeKey} duplikat di daftar ini`); return; }
+      seenKeys.add(k);
+    }
+    cfg.getArr().push(cfg.buildRow(v));
+    added++;
+  });
+
+  if(added>0) cfg.afterSave();
+
+  const msgParts = [];
+  if(added>0) msgParts.push(`✓ ${added} baris berhasil ditambahkan.`);
+  if(errors.length>0) msgParts.push(`${errors.length} baris dilewati — ` + errors.join(' | '));
+  statusEl.textContent = msgParts.join(' ');
+  statusEl.style.color = errors.length>0 ? 'var(--danger)' : 'var(--muted)';
+
+  if(added>0 && errors.length===0){
+    closeBulkModal();
+  }
+}
+window.saveBulkForm = saveBulkForm;
+
 // ---------- Rekomendasi Transfer Antar Cabang (SKU: Aksesoris / Sparepart) ----------
 function renderCategoryTransfer(containerId, countId, data){
   const groups = {};

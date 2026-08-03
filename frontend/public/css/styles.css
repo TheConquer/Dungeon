@@ -108,6 +108,9 @@
   .dash-field-row{display:flex;gap:10px;}
   .dash-field-row .dash-field{flex:1;}
   .dash-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  #bulkTableBody input, #bulkTableBody select{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:12px;box-sizing:border-box;}
+  #bulkTableBody input:focus, #bulkTableBody select:focus{outline:none;border-color:var(--accent);}
+  #bulkPasteText:focus{outline:none;border-color:var(--accent);}
   .row-actions{display:flex;gap:6px;}
   .row-actions button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 9px;border-radius:7px;font-size:11px;cursor:pointer;transition:color .2s var(--ease),border-color .2s var(--ease);}
   .row-actions button:hover{color:var(--text);border-color:var(--accent);}
