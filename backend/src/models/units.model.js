@@ -97,4 +97,53 @@ async function bulkReplace(rows) {
   }).then(list);
 }
 
-module.exports = { list, getById, getByImei, create, update, remove, bulkReplace };
+// "Sync Harian" — beda dari bulkReplace (yang hapus-semua-lalu-insert-ulang). Ini untuk file
+// export harian dari sistem kasir/toko yang berisi SEMUA unit (stok fisik, harga, dll) tapi
+// TIDAK membawa status penjualan aplikasi ini (Ready Stock/Terjual/Trouble/dst), Report QC,
+// atau Tanggal Terjual — field-field itu murni dikelola lewat aplikasi ini, jadi:
+//  - IMEI yang SUDAH ADA di database: field lain di-update dari file, tapi status/report_qc/
+//    tanggal_terjual/alasan_flashsale TETAP seperti yang sudah tercatat di aplikasi.
+//  - IMEI yang BELUM ADA: dibuat unit baru (status default Ready Stock/Pending QC).
+//  - Unit yang ada di database tapi TIDAK muncul di file hari itu: dibiarkan apa adanya,
+//    TIDAK dihapus (menghindari risiko data hilang kalau file harian kebetulan tidak lengkap).
+async function syncFromFile(rows) {
+  return withTransaction(async (client) => {
+    let added = 0;
+    let updated = 0;
+    let skipped = 0;
+    for (const r of rows) {
+      const imei = String(r.imei || '').trim();
+      if (!/^\d{15}$/.test(imei)) { skipped++; continue; }
+      const supplierId = await resolveSupplierId(client, r.supplier);
+      const branchId = await resolveBranchId(client, r.gudang);
+      const { rows: existing } = await client.query('SELECT id FROM units WHERE imei = $1', [imei]);
+      if (existing.length) {
+        await client.query(
+          `UPDATE units SET model=$2, warna=$3, kapasitas=$4, supplier_id=$5, branch_id=$6,
+                             tanggal_masuk=$7, harga_beli=$8, harga_jual=$9, catatan=$10
+           WHERE imei=$1`,
+          [
+            imei, r.model || '', r.warna || '', r.kapasitas || '', supplierId, branchId,
+            r.tanggal_masuk || null, Number(r.harga_beli) || 0, Number(r.harga_jual) || 0, r.catatan || '-',
+          ]
+        );
+        updated++;
+      } else {
+        const id = await nextUnitId(client);
+        await client.query(
+          `INSERT INTO units (id, imei, model, warna, kapasitas, supplier_id, branch_id, tanggal_masuk,
+                               status, report_qc, catatan, harga_beli, harga_jual, tanggal_terjual, alasan_flashsale)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'Ready Stock','Pending QC',$9,$10,$11,NULL,NULL)`,
+          [
+            id, imei, r.model || '', r.warna || '', r.kapasitas || '', supplierId, branchId,
+            r.tanggal_masuk || null, r.catatan || '-', Number(r.harga_beli) || 0, Number(r.harga_jual) || 0,
+          ]
+        );
+        added++;
+      }
+    }
+    return { added, updated, skipped };
+  }).then(async (counts) => ({ ...counts, rows: await list() }));
+}
+
+module.exports = { list, getById, getByImei, create, update, remove, bulkReplace, syncFromFile };

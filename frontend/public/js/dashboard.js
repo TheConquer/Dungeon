@@ -2391,8 +2391,15 @@ function buildImportUI(){
       <div class="btn-row" style="margin-bottom:0;">
         <button class="btn btn-outline" data-download="${cfg.key}" type="button">⬇ Download Template (CSV)</button>
       </div>
+      <label style="display:block;font-size:11px;color:var(--muted);margin:10px 0 2px;">Ganti Semua Data (isi file = seluruh data baru, yang lama ditimpa)</label>
       <input type="file" accept=".csv,.xlsx,.xls" data-upload="${cfg.key}">
       <div class="imp-status" id="impStatus-${cfg.key}"></div>
+      ${cfg.key==='unit' ? `
+      <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);">
+        <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:2px;">🔄 Sync Harian (update data fisik unit dari file, TANPA menghapus unit lain & TANPA mengubah status/Report QC/Tanggal Terjual yang sudah tercatat di aplikasi)</label>
+        <input type="file" accept=".csv,.xlsx,.xls" data-upload-sync="unit">
+        <div class="imp-status" id="impStatus-unit-sync"></div>
+      </div>` : ''}
     </div>`).join('');
 
   importConfigs.forEach(cfg=>{
@@ -2426,6 +2433,46 @@ function buildImportUI(){
       reader.readAsArrayBuffer(file);
     });
   });
+
+  // "Sync Harian" — cuma untuk Unit iPhone (lihat catatan di units.model.js: update field
+  // fisik unit dari file, tapi status/report_qc/tanggal_terjual TIDAK ikut berubah, dan unit
+  // yang tidak ada di file TIDAK dihapus).
+  const syncInput = document.querySelector('[data-upload-sync="unit"]');
+  if(syncInput){
+    const unitCfg = importConfigs.find(c=>c.key==='unit');
+    syncInput.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const statusEl = document.getElementById('impStatus-unit-sync');
+      const reader = new FileReader();
+      reader.onload = async (ev)=>{
+        try{
+          const data = new Uint8Array(ev.target.result);
+          const wb = XLSX.read(data, {type:'array'});
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+          if(!rows.length) throw new Error('File kosong atau format tidak terbaca.');
+          const transformed = rows.map((r,i)=>unitCfg.transform(r,i));
+          const res = await fetch('/api/units/sync', {
+            method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: transformed })
+          });
+          const result = await res.json();
+          if(!res.ok) throw new Error(result.error || 'Gagal sync.');
+          inventoryData.length = 0;
+          inventoryData.push(...result.rows);
+          renderEverything();
+          statusEl.className = 'imp-status ok';
+          statusEl.textContent = `✓ Sync selesai — ${result.added} unit baru ditambahkan, ${result.updated} unit diperbarui` + (result.skipped ? `, ${result.skipped} baris dilewati (IMEI tidak valid)` : '') + `. Status/Report QC/Tanggal Terjual unit yang sudah ada TIDAK berubah.`;
+        }catch(err){
+          statusEl.className = 'imp-status err';
+          statusEl.textContent = `✗ Gagal sync: ${err.message}`;
+        }finally{
+          e.target.value = '';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
 }
 
 // ---------- Master render: dipanggil saat load & setelah import data ----------

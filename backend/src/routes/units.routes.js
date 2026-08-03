@@ -11,6 +11,13 @@ router.get('/by-imei/:imei', asyncHandler(async (req, res) => {
   res.json(row);
 }));
 
+// "Sync Harian": update/tambah dari file export harian TANPA menghapus/menimpa status,
+// report QC, atau tanggal terjual unit yang sudah ada. Lihat catatan di units.model.js.
+router.post('/sync', asyncHandler(async (req, res) => {
+  const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+  res.json(await model.syncFromFile(rows));
+}));
+
 router.use('/', makeCrudRouterWithImport(model, { notFoundMsg: 'Unit tidak ditemukan' }));
 
 module.exports = router;
