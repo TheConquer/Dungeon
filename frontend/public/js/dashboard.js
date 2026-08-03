@@ -37,6 +37,12 @@ function savePersisted(key, arr){
 }
 
 let inventoryData = [];
+function nextUnitId(){
+  const nums = inventoryData.map(d=>{ const m=/^U(\d+)$/.exec(d.id); return m?parseInt(m[1],10):0; });
+  const maxNum = nums.length ? Math.max(...nums) : 0;
+  return `U${String(maxNum+1).padStart(4,'0')}`;
+}
+function saveInventoryData(){ savePersisted(PERSIST_KEYS.unit, inventoryData); }
 let purchaseOrders = [];
 function nextPoId(){
   const nums = purchaseOrders.map(p=>{
@@ -78,6 +84,14 @@ let dusboxData = [];
 let aksesorisData = [];
 let sparepartData = [];
 let returKlaimData = [];
+function nextRkId(tipe){
+  const prefix = tipe==='Retur ke Supplier' ? 'KL-' : 'RT-';
+  const re = new RegExp('^'+prefix+'(\\d+)$');
+  const nums = returKlaimData.map(r=>{ const m=re.exec(r.id); return m?parseInt(m[1],10):0; });
+  const maxNum = nums.length ? Math.max(...nums) : 0;
+  return `${prefix}${String(maxNum+1).padStart(4,'0')}`;
+}
+function saveReturKlaimData(){ savePersisted(PERSIST_KEYS.returklaim, returKlaimData); }
 
 const fmtRp = n => 'Rp' + n.toLocaleString('id-ID');
 document.getElementById('todayBadge').textContent = 'Update: ' + new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
@@ -361,9 +375,125 @@ function renderTable(){
       <td>${d.catatan}</td>
       <td>${fmtRp(d.harga_beli)}</td>
       <td>${fmtRp(d.harga_jual)}</td>
+      <td><div class="row-actions"><button type="button" onclick="openUnitModal('${d.id}')">Edit</button><button type="button" class="del" onclick="deleteUnitConfirm('${d.id}')">Hapus</button></div></td>
     </tr>`;}).join('');
   document.getElementById('tableCount').textContent = `(${inventoryData.length} unit total)`;
 }
+
+// ---------- Unit: Tambah/Edit/Hapus (modal) ----------
+function populateUnitModalDatalists(){
+  const models = Object.keys(reorderThresholds);
+  const suppliers = [...new Set(inventoryData.map(d=>d.supplier))].sort();
+  const gudangs = [...new Set(inventoryData.map(d=>d.gudang))].sort();
+  document.getElementById('unitModelList').innerHTML = models.map(m=>`<option value="${m}">`).join('');
+  document.getElementById('unitSupplierList').innerHTML = suppliers.map(s=>`<option value="${s}">`).join('');
+  document.getElementById('unitGudangList').innerHTML = gudangs.map(g=>`<option value="${g}">`).join('');
+}
+
+function openUnitModal(id){
+  populateUnitModalDatalists();
+  const isEdit = !!id;
+  document.getElementById('unitModalTitle').textContent = isEdit ? 'Edit Unit' : 'Tambah Unit';
+  document.getElementById('unitFormId').value = id || '';
+  if(isEdit){
+    const d = inventoryData.find(x=>x.id===id);
+    if(!d) return;
+    document.getElementById('unitFImei').value = d.imei;
+    document.getElementById('unitFModel').value = d.model;
+    document.getElementById('unitFKapasitas').value = d.kapasitas;
+    document.getElementById('unitFWarna').value = d.warna;
+    document.getElementById('unitFSupplier').value = d.supplier;
+    document.getElementById('unitFGudang').value = d.gudang;
+    document.getElementById('unitFTglMasuk').value = d.tanggal_masuk;
+    document.getElementById('unitFStatus').value = d.status;
+    document.getElementById('unitFReportQc').value = d.report_qc;
+    document.getElementById('unitFTglTerjual').value = d.tanggal_terjual || '';
+    document.getElementById('unitFHargaBeli').value = d.harga_beli;
+    document.getElementById('unitFHargaJual').value = d.harga_jual;
+    document.getElementById('unitFCatatan').value = d.catatan || '';
+    document.getElementById('unitFAlasanFlashsale').value = d.alasan_flashsale || '';
+  }else{
+    document.getElementById('unitFImei').value = '';
+    document.getElementById('unitFModel').value = '';
+    document.getElementById('unitFKapasitas').value = '';
+    document.getElementById('unitFWarna').value = '';
+    document.getElementById('unitFSupplier').value = '';
+    document.getElementById('unitFGudang').value = '';
+    document.getElementById('unitFTglMasuk').value = REF_TODAY_STR;
+    document.getElementById('unitFStatus').value = 'Ready Stock';
+    document.getElementById('unitFReportQc').value = 'Pending QC';
+    document.getElementById('unitFTglTerjual').value = '';
+    document.getElementById('unitFHargaBeli').value = '';
+    document.getElementById('unitFHargaJual').value = '';
+    document.getElementById('unitFCatatan').value = '';
+    document.getElementById('unitFAlasanFlashsale').value = '';
+  }
+  document.getElementById('unitModalOverlay').classList.add('open');
+}
+window.openUnitModal = openUnitModal;
+
+function closeUnitModal(){
+  document.getElementById('unitModalOverlay').classList.remove('open');
+}
+window.closeUnitModal = closeUnitModal;
+
+function saveUnitForm(){
+  const id = document.getElementById('unitFormId').value;
+  const imei = document.getElementById('unitFImei').value.trim();
+  const model = document.getElementById('unitFModel').value.trim();
+  const kapasitas = document.getElementById('unitFKapasitas').value.trim();
+  const warna = document.getElementById('unitFWarna').value.trim();
+  const supplier = document.getElementById('unitFSupplier').value.trim();
+  const gudang = document.getElementById('unitFGudang').value.trim();
+  const tglMasuk = document.getElementById('unitFTglMasuk').value;
+  const status = document.getElementById('unitFStatus').value;
+  const reportQc = document.getElementById('unitFReportQc').value;
+  const tglTerjual = document.getElementById('unitFTglTerjual').value || null;
+  const hargaBeli = parseFloat(document.getElementById('unitFHargaBeli').value) || 0;
+  const hargaJual = parseFloat(document.getElementById('unitFHargaJual').value) || 0;
+  const catatan = document.getElementById('unitFCatatan').value.trim() || '-';
+  const alasanFlashsale = document.getElementById('unitFAlasanFlashsale').value.trim() || null;
+
+  if(!/^\d{15}$/.test(imei) || !model || !kapasitas || !warna || !supplier || !gudang || !tglMasuk){
+    alert('Lengkapi dulu IMEI (15 digit), Model, Kapasitas, Warna, Supplier, Gudang & Tanggal Masuk.');
+    return;
+  }
+  const dup = inventoryData.find(d=>d.imei===imei && d.id!==id);
+  if(dup){
+    alert(`IMEI ini sudah dipakai unit ${dup.id}.`);
+    return;
+  }
+
+  const payload = {
+    imei, model, kapasitas, warna, supplier, gudang, tanggal_masuk: tglMasuk,
+    status, report_qc: reportQc, tanggal_terjual: status==='Terjual' ? tglTerjual : null,
+    harga_beli: hargaBeli, harga_jual: hargaJual, catatan,
+    alasan_flashsale: status==='Flash Sale' ? alasanFlashsale : null,
+  };
+
+  if(id){
+    const d = inventoryData.find(x=>x.id===id);
+    if(!d){ closeUnitModal(); return; }
+    Object.assign(d, payload);
+  }else{
+    inventoryData.push(Object.assign({ id: nextUnitId() }, payload));
+  }
+
+  saveInventoryData();
+  closeUnitModal();
+  renderEverything();
+}
+window.saveUnitForm = saveUnitForm;
+
+function deleteUnitConfirm(id){
+  if(!confirm(`Hapus unit ${id}? Tindakan ini tidak bisa dibatalkan.`)) return;
+  const idx = inventoryData.findIndex(d=>d.id===id);
+  if(idx===-1) return;
+  inventoryData.splice(idx,1);
+  saveInventoryData();
+  renderEverything();
+}
+window.deleteUnitConfirm = deleteUnitConfirm;
 
 // [data-key] narrows this to our own sortable table headers only — the merged Unit Service
 // tool's tables use a nested <span data-key> for its own sort indicators, not on the <th> itself,
@@ -1565,7 +1695,7 @@ function renderDusboxTable(){
   document.getElementById('dusboxResultCount').textContent = `Menampilkan ${rows.length} dari ${dusboxData.length} SKU`;
   document.getElementById('dusboxTableCount').textContent = `(${dusboxData.length} SKU total)`;
   document.getElementById('dusboxTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td></tr>`).join('');
+    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStockModal('dusbox','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('dusbox','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
 }
 ['dusboxSearch','dusboxFModel','dusboxFKondisi','dusboxFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderDusboxTable));
 
@@ -1586,7 +1716,7 @@ function renderAksesorisTable(){
   document.getElementById('aksesorisResultCount').textContent = `Menampilkan ${rows.length} dari ${aksesorisData.length} SKU`;
   document.getElementById('aksesorisTableCount').textContent = `(${aksesorisData.length} SKU total)`;
   document.getElementById('aksesorisTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td></tr>`).join('');
+    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStockModal('aksesoris','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('aksesoris','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
 }
 ['aksesorisSearch','aksesorisFJenis','aksesorisFGudang','aksesorisFSupplier'].forEach(id=>document.getElementById(id).addEventListener('input', renderAksesorisTable));
 
@@ -1607,9 +1737,128 @@ function renderSparepartTable(){
   document.getElementById('sparepartResultCount').textContent = `Menampilkan ${rows.length} dari ${sparepartData.length} SKU`;
   document.getElementById('sparepartTableCount').textContent = `(${sparepartData.length} SKU total)`;
   document.getElementById('sparepartTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td></tr>`).join('');
+    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStockModal('sparepart','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('sparepart','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
 }
 ['sparepartSearch','sparepartFJenis','sparepartFKondisi','sparepartFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderSparepartTable));
+
+// ---------- Dusbox/Aksesoris/Sparepart: Tambah/Edit/Hapus (modal generik, field-nya identik) ----------
+function nextStockSkuId(arr, prefix){
+  const re = new RegExp('^'+prefix+'(\\d+)$');
+  const nums = arr.map(d=>{ const m=re.exec(d.sku_id); return m?parseInt(m[1],10):0; });
+  const maxNum = nums.length ? Math.max(...nums) : 0;
+  return `${prefix}${String(maxNum+1).padStart(4,'0')}`;
+}
+const STOCK_CATEGORY_CONFIG = {
+  dusbox: { getArr: ()=>dusboxData, prefix:'DB-', defaultReorder:10, persistKey:PERSIST_KEYS.dusbox, label:'Dusbox' },
+  aksesoris: { getArr: ()=>aksesorisData, prefix:'ACC-', defaultReorder:15, persistKey:PERSIST_KEYS.aksesoris, label:'Aksesoris' },
+  sparepart: { getArr: ()=>sparepartData, prefix:'SP-', defaultReorder:5, persistKey:PERSIST_KEYS.sparepart, label:'Sparepart' },
+};
+
+function populateStockModalDatalists(){
+  const allStock = [...dusboxData, ...aksesorisData, ...sparepartData];
+  const models = [...new Set([...Object.keys(reorderThresholds), ...allStock.map(d=>d.kompatibel_model)])].filter(Boolean).sort();
+  const suppliers = [...new Set(allStock.map(d=>d.supplier))].sort();
+  const gudangs = [...new Set(allStock.map(d=>d.gudang))].sort();
+  document.getElementById('stockModelList').innerHTML = models.map(m=>`<option value="${m}">`).join('');
+  document.getElementById('stockSupplierList').innerHTML = suppliers.map(s=>`<option value="${s}">`).join('');
+  document.getElementById('stockGudangList').innerHTML = gudangs.map(g=>`<option value="${g}">`).join('');
+}
+
+function openStockModal(category, id){
+  const cfg = STOCK_CATEGORY_CONFIG[category];
+  if(!cfg) return;
+  populateStockModalDatalists();
+  const isEdit = !!id;
+  document.getElementById('stockModalTitle').textContent = (isEdit?'Edit ':'Tambah ') + cfg.label;
+  document.getElementById('stockFormCategory').value = category;
+  document.getElementById('stockFormId').value = id || '';
+  if(isEdit){
+    const d = cfg.getArr().find(x=>x.sku_id===id);
+    if(!d) return;
+    document.getElementById('stockFJenis').value = d.jenis;
+    document.getElementById('stockFKompatibel').value = d.kompatibel_model || '';
+    document.getElementById('stockFKondisi').value = d.kondisi;
+    document.getElementById('stockFSatuan').value = d.satuan || 'pcs';
+    document.getElementById('stockFQty').value = d.qty;
+    document.getElementById('stockFReorderPoint').value = d.reorder_point;
+    document.getElementById('stockFSupplier').value = d.supplier;
+    document.getElementById('stockFGudang').value = d.gudang;
+    document.getElementById('stockFHargaBeli').value = d.harga_beli;
+    document.getElementById('stockFHargaJual').value = d.harga_jual;
+  }else{
+    document.getElementById('stockFJenis').value = '';
+    document.getElementById('stockFKompatibel').value = '';
+    document.getElementById('stockFKondisi').value = '';
+    document.getElementById('stockFSatuan').value = 'pcs';
+    document.getElementById('stockFQty').value = 0;
+    document.getElementById('stockFReorderPoint').value = cfg.defaultReorder;
+    document.getElementById('stockFSupplier').value = '';
+    document.getElementById('stockFGudang').value = '';
+    document.getElementById('stockFHargaBeli').value = '';
+    document.getElementById('stockFHargaJual').value = '';
+  }
+  document.getElementById('stockModalOverlay').classList.add('open');
+}
+window.openStockModal = openStockModal;
+
+function closeStockModal(){
+  document.getElementById('stockModalOverlay').classList.remove('open');
+}
+window.closeStockModal = closeStockModal;
+
+function saveStockForm(){
+  const category = document.getElementById('stockFormCategory').value;
+  const cfg = STOCK_CATEGORY_CONFIG[category];
+  if(!cfg) return;
+  const id = document.getElementById('stockFormId').value;
+  const jenis = document.getElementById('stockFJenis').value.trim();
+  const kompatibel = document.getElementById('stockFKompatibel').value.trim();
+  const kondisi = document.getElementById('stockFKondisi').value.trim();
+  const satuan = document.getElementById('stockFSatuan').value.trim() || 'pcs';
+  const qty = parseInt(document.getElementById('stockFQty').value,10) || 0;
+  const reorderPoint = parseInt(document.getElementById('stockFReorderPoint').value,10) || 0;
+  const supplier = document.getElementById('stockFSupplier').value.trim();
+  const gudang = document.getElementById('stockFGudang').value.trim();
+  const hargaBeli = parseFloat(document.getElementById('stockFHargaBeli').value) || 0;
+  const hargaJual = parseFloat(document.getElementById('stockFHargaJual').value) || 0;
+
+  if(!jenis || !kondisi || !supplier || !gudang){
+    alert('Lengkapi dulu Jenis, Kondisi, Supplier & Cabang.');
+    return;
+  }
+
+  const payload = {
+    jenis, kompatibel_model: kompatibel, kondisi, satuan, qty, reorder_point: reorderPoint,
+    supplier, gudang, harga_beli: hargaBeli, harga_jual: hargaJual, tanggal_update: REF_TODAY_STR,
+  };
+
+  const arr = cfg.getArr();
+  if(id){
+    const d = arr.find(x=>x.sku_id===id);
+    if(!d){ closeStockModal(); return; }
+    Object.assign(d, payload);
+  }else{
+    arr.push(Object.assign({ sku_id: nextStockSkuId(arr, cfg.prefix) }, payload));
+  }
+
+  savePersisted(cfg.persistKey, arr);
+  closeStockModal();
+  renderEverything();
+}
+window.saveStockForm = saveStockForm;
+
+function deleteStockConfirm(category, id){
+  const cfg = STOCK_CATEGORY_CONFIG[category];
+  if(!cfg) return;
+  if(!confirm(`Hapus SKU ${id}? Tindakan ini tidak bisa dibatalkan.`)) return;
+  const arr = cfg.getArr();
+  const idx = arr.findIndex(d=>d.sku_id===id);
+  if(idx===-1) return;
+  arr.splice(idx,1);
+  savePersisted(cfg.persistKey, arr);
+  renderEverything();
+}
+window.deleteStockConfirm = deleteStockConfirm;
 
 // ---------- Retur & Klaim ----------
 function renderRkKpi(){
@@ -1695,8 +1944,98 @@ function renderRkTable(){
     <tr>
       <td>${r.id}</td><td>${r.tipe}</td><td>${r.kategori_barang}</td><td>${referensiCell}</td><td>${r.deskripsi}</td>
       <td>${r.alasan}</td><td>${r.tanggal}</td><td>${r.status}</td><td>${fmtRp(r.nilai)}</td><td>${r.pihak_terkait}</td><td>${r.catatan}</td>
+      <td><div class="row-actions"><button type="button" onclick="openRkModal('${r.id}')">Edit</button><button type="button" class="del" onclick="deleteRkConfirm('${r.id}')">Hapus</button></div></td>
     </tr>`;}).join('');
 }
+
+// ---------- Retur & Klaim: Tambah/Edit/Hapus (modal) ----------
+function openRkModal(id){
+  const isEdit = !!id;
+  document.getElementById('rkModalTitle').textContent = isEdit ? 'Edit Retur/Klaim' : 'Tambah Retur/Klaim';
+  document.getElementById('rkFormId').value = id || '';
+  if(isEdit){
+    const r = returKlaimData.find(x=>x.id===id);
+    if(!r) return;
+    document.getElementById('rkFTipeForm').value = r.tipe;
+    document.getElementById('rkFKategoriForm').value = r.kategori_barang;
+    document.getElementById('rkFReferensi').value = r.referensi || '';
+    document.getElementById('rkFImei').value = r.imei || '';
+    document.getElementById('rkFDeskripsi').value = r.deskripsi || '';
+    document.getElementById('rkFAlasan').value = r.alasan || '';
+    document.getElementById('rkFTanggal').value = r.tanggal;
+    document.getElementById('rkFStatusForm').value = r.status;
+    document.getElementById('rkFNilai').value = r.nilai;
+    document.getElementById('rkFPihakTerkait').value = r.pihak_terkait || '';
+    document.getElementById('rkFCatatan').value = r.catatan || '';
+  }else{
+    document.getElementById('rkFTipeForm').value = 'Retur Cabang';
+    document.getElementById('rkFKategoriForm').value = '';
+    document.getElementById('rkFReferensi').value = '';
+    document.getElementById('rkFImei').value = '';
+    document.getElementById('rkFDeskripsi').value = '';
+    document.getElementById('rkFAlasan').value = '';
+    document.getElementById('rkFTanggal').value = REF_TODAY_STR;
+    document.getElementById('rkFStatusForm').value = 'Diajukan';
+    document.getElementById('rkFNilai').value = '';
+    document.getElementById('rkFPihakTerkait').value = '';
+    document.getElementById('rkFCatatan').value = '';
+  }
+  document.getElementById('rkModalOverlay').classList.add('open');
+}
+window.openRkModal = openRkModal;
+
+function closeRkModal(){
+  document.getElementById('rkModalOverlay').classList.remove('open');
+}
+window.closeRkModal = closeRkModal;
+
+function saveRkForm(){
+  const id = document.getElementById('rkFormId').value;
+  const tipe = document.getElementById('rkFTipeForm').value;
+  const kategori = document.getElementById('rkFKategoriForm').value.trim();
+  const referensi = document.getElementById('rkFReferensi').value.trim();
+  const imei = document.getElementById('rkFImei').value.trim();
+  const deskripsi = document.getElementById('rkFDeskripsi').value.trim();
+  const alasan = document.getElementById('rkFAlasan').value.trim();
+  const tanggal = document.getElementById('rkFTanggal').value;
+  const status = document.getElementById('rkFStatusForm').value;
+  const nilai = parseFloat(document.getElementById('rkFNilai').value) || 0;
+  const pihakTerkait = document.getElementById('rkFPihakTerkait').value.trim();
+  const catatan = document.getElementById('rkFCatatan').value.trim();
+
+  if(!kategori || !deskripsi || !alasan || !tanggal){
+    alert('Lengkapi dulu Kategori Barang, Deskripsi, Alasan & Tanggal.');
+    return;
+  }
+
+  const payload = {
+    tipe, kategori_barang: kategori, referensi, imei: imei || null, deskripsi, alasan, tanggal,
+    status, nilai, pihak_terkait: pihakTerkait, catatan,
+  };
+
+  if(id){
+    const r = returKlaimData.find(x=>x.id===id);
+    if(!r){ closeRkModal(); return; }
+    Object.assign(r, payload);
+  }else{
+    returKlaimData.push(Object.assign({ id: nextRkId(tipe) }, payload));
+  }
+
+  saveReturKlaimData();
+  closeRkModal();
+  renderEverything();
+}
+window.saveRkForm = saveRkForm;
+
+function deleteRkConfirm(id){
+  if(!confirm(`Hapus kasus ${id}? Tindakan ini tidak bisa dibatalkan.`)) return;
+  const idx = returKlaimData.findIndex(r=>r.id===id);
+  if(idx===-1) return;
+  returKlaimData.splice(idx,1);
+  saveReturKlaimData();
+  renderEverything();
+}
+window.deleteRkConfirm = deleteRkConfirm;
 ['rkSearch','rkFTipe','rkFKategori','rkFStatus'].forEach(id=>document.getElementById(id).addEventListener('input', renderRkTable));
 
 // ---------- Rekomendasi Transfer Antar Cabang (SKU: Aksesoris / Sparepart) ----------

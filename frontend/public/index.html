@@ -91,7 +91,10 @@
 
   <div class="subtab-content" id="subtab-dataunit" style="display:none;">
     <div class="panel">
-      <h2>Daftar Unit Inventory <span class="count" id="tableCount"></span></h2>
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">Daftar Unit Inventory <span class="count" id="tableCount"></span></h2>
+        <button class="btn" type="button" onclick="openUnitModal()">+ Tambah Unit</button>
+      </div>
       <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Report QC lengkap per tanggal kedatangan ada di subtab <b>✅ Report QC</b> — klik badge report QC atau keterkaitan di bawah untuk lompat langsung.</p>
       <div class="filters">
         <input type="text" id="fSearch" placeholder="Cari model, warna, IMEI, supplier...">
@@ -132,6 +135,7 @@
               <th data-key="catatan">Catatan</th>
               <th data-key="harga_beli">Harga Beli</th>
               <th data-key="harga_jual">Harga Jual</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -343,7 +347,10 @@
       <div class="panel"><h2>⚠️ Reorder Alert <span class="count" id="dusboxReorderCount"></span></h2><div class="alert-list" id="dusboxReorderList" style="max-height:230px;"></div></div>
     </div>
     <div class="panel">
-      <h2>Daftar Stok Dusbox <span class="count" id="dusboxTableCount"></span></h2>
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">Daftar Stok Dusbox <span class="count" id="dusboxTableCount"></span></h2>
+        <button class="btn" type="button" onclick="openStockModal('dusbox')">+ Tambah Dusbox</button>
+      </div>
       <div class="filters">
         <input type="text" id="dusboxSearch" placeholder="Cari model, SKU...">
         <select id="dusboxFModel"><option value="">Semua Model</option></select>
@@ -353,7 +360,7 @@
       <div class="result-count" id="dusboxResultCount"></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Jenis</th><th>Model</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th></tr></thead>
+          <thead><tr><th>Jenis</th><th>Model</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th><th>Aksi</th></tr></thead>
           <tbody id="dusboxTbody"></tbody>
         </table>
       </div>
@@ -374,7 +381,10 @@
       <div class="alert-list" id="aksesorisTransferList" style="max-height:260px;"></div>
     </div>
     <div class="panel">
-      <h2>Daftar Stok Aksesoris <span class="count" id="aksesorisTableCount"></span></h2>
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">Daftar Stok Aksesoris <span class="count" id="aksesorisTableCount"></span></h2>
+        <button class="btn" type="button" onclick="openStockModal('aksesoris')">+ Tambah Aksesoris</button>
+      </div>
       <div class="filters">
         <input type="text" id="aksesorisSearch" placeholder="Cari jenis, SKU...">
         <select id="aksesorisFJenis"><option value="">Semua Jenis</option></select>
@@ -384,7 +394,7 @@
       <div class="result-count" id="aksesorisResultCount"></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th></tr></thead>
+          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th><th>Aksi</th></tr></thead>
           <tbody id="aksesorisTbody"></tbody>
         </table>
       </div>
@@ -405,7 +415,10 @@
       <div class="alert-list" id="sparepartTransferList" style="max-height:260px;"></div>
     </div>
     <div class="panel">
-      <h2>Daftar Stok Sparepart <span class="count" id="sparepartTableCount"></span></h2>
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">Daftar Stok Sparepart <span class="count" id="sparepartTableCount"></span></h2>
+        <button class="btn" type="button" onclick="openStockModal('sparepart')">+ Tambah Sparepart</button>
+      </div>
       <div class="filters">
         <input type="text" id="sparepartSearch" placeholder="Cari jenis, model, SKU...">
         <select id="sparepartFJenis"><option value="">Semua Jenis</option></select>
@@ -415,7 +428,7 @@
       <div class="result-count" id="sparepartResultCount"></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th></tr></thead>
+          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th><th>Aksi</th></tr></thead>
           <tbody id="sparepartTbody"></tbody>
         </table>
       </div>
@@ -432,7 +445,10 @@
       <div class="panel"><h2>Berdasarkan Kategori Barang</h2><div class="chart-box"><canvas id="chartRkKategori"></canvas></div></div>
     </div>
     <div class="panel">
-      <h2>Daftar Retur &amp; Klaim <span class="count" id="rkTableCount"></span></h2>
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">Daftar Retur &amp; Klaim <span class="count" id="rkTableCount"></span></h2>
+        <button class="btn" type="button" onclick="openRkModal()">+ Tambah Retur/Klaim</button>
+      </div>
       <div class="filters">
         <input type="text" id="rkSearch" placeholder="Cari referensi, deskripsi, pihak terkait...">
         <select id="rkFTipe">
@@ -446,7 +462,7 @@
       <div class="result-count" id="rkResultCount"></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>ID</th><th>Tipe</th><th>Kategori</th><th>Referensi</th><th>Deskripsi</th><th>Alasan</th><th>Tanggal</th><th>Status</th><th>Nilai</th><th>Pihak Terkait</th><th>Catatan</th></tr></thead>
+          <thead><tr><th>ID</th><th>Tipe</th><th>Kategori</th><th>Referensi</th><th>Deskripsi</th><th>Alasan</th><th>Tanggal</th><th>Status</th><th>Nilai</th><th>Pihak Terkait</th><th>Catatan</th><th>Aksi</th></tr></thead>
           <tbody id="rkTbody"></tbody>
         </table>
       </div>
@@ -1130,6 +1146,238 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
   <p class="footer-note">Data bersifat sample untuk keperluan demonstrasi dashboard. Ganti dengan data stok aktual dari sistem/kasir Anda.</p>
 
   <!-- ===== Modal Tambah/Edit Purchase Order (Supply Chain) ===== -->
+  <div class="dash-modal-overlay" id="unitModalOverlay">
+    <div class="dash-modal">
+      <h2 id="unitModalTitle">Tambah Unit</h2>
+      <input type="hidden" id="unitFormId">
+      <div class="dash-field">
+        <label>IMEI</label>
+        <input type="text" id="unitFImei" placeholder="15 digit IMEI">
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Model</label>
+          <input type="text" id="unitFModel" list="unitModelList" placeholder="Contoh: iPhone 15 Pro">
+          <datalist id="unitModelList"></datalist>
+        </div>
+        <div class="dash-field">
+          <label>Kapasitas</label>
+          <input type="text" id="unitFKapasitas" placeholder="Contoh: 256GB">
+        </div>
+      </div>
+      <div class="dash-field">
+        <label>Warna</label>
+        <input type="text" id="unitFWarna" placeholder="Contoh: Titanium Natural">
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Supplier</label>
+          <input type="text" id="unitFSupplier" list="unitSupplierList" placeholder="Nama supplier">
+          <datalist id="unitSupplierList"></datalist>
+        </div>
+        <div class="dash-field">
+          <label>Cabang / Gudang</label>
+          <input type="text" id="unitFGudang" list="unitGudangList" placeholder="Contoh: Cabang Jakarta Pusat">
+          <datalist id="unitGudangList"></datalist>
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Tanggal Masuk</label>
+          <input type="date" id="unitFTglMasuk">
+        </div>
+        <div class="dash-field">
+          <label>Status</label>
+          <select id="unitFStatus">
+            <option value="Ready Stock">Ready Stock</option>
+            <option value="Prioritas FIFO">Prioritas FIFO</option>
+            <option value="Flash Sale">Flash Sale</option>
+            <option value="Trouble">Trouble</option>
+            <option value="Terjual">Terjual</option>
+          </select>
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Report QC</label>
+          <select id="unitFReportQc">
+            <option value="Pending QC">Pending QC</option>
+            <option value="Lolos QC">Lolos QC</option>
+            <option value="Gagal QC">Gagal QC</option>
+          </select>
+        </div>
+        <div class="dash-field">
+          <label>Tanggal Terjual</label>
+          <input type="date" id="unitFTglTerjual">
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Harga Beli (Rp)</label>
+          <input type="number" id="unitFHargaBeli" min="0" step="1000">
+        </div>
+        <div class="dash-field">
+          <label>Harga Jual (Rp)</label>
+          <input type="number" id="unitFHargaJual" min="0" step="1000">
+        </div>
+      </div>
+      <div class="dash-field">
+        <label>Catatan</label>
+        <input type="text" id="unitFCatatan" placeholder="-">
+      </div>
+      <div class="dash-field">
+        <label>Alasan Flash Sale <span style="color:var(--muted);font-weight:400;">(kalau status Flash Sale)</span></label>
+        <input type="text" id="unitFAlasanFlashsale" placeholder="Contoh: Jual Minus">
+      </div>
+      <div class="dash-modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeUnitModal()">Batal</button>
+        <button class="btn" type="button" onclick="saveUnitForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal ini dipakai bareng untuk 3 panel (Dusbox/Aksesoris/Sparepart) karena field-nya
+       identik — pembedanya cuma stockFormCategory (hidden) yang di-set saat openStockModal(). -->
+  <div class="dash-modal-overlay" id="stockModalOverlay">
+    <div class="dash-modal">
+      <h2 id="stockModalTitle">Tambah Stok</h2>
+      <input type="hidden" id="stockFormCategory">
+      <input type="hidden" id="stockFormId">
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Jenis</label>
+          <input type="text" id="stockFJenis" placeholder="Contoh: Dusbox iPhone 15">
+        </div>
+        <div class="dash-field">
+          <label>Kompatibel Model</label>
+          <input type="text" id="stockFKompatibel" list="stockModelList" placeholder="Contoh: iPhone 15">
+          <datalist id="stockModelList"></datalist>
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Kondisi</label>
+          <input type="text" id="stockFKondisi" placeholder="Contoh: Baik / Original Sealed">
+        </div>
+        <div class="dash-field">
+          <label>Satuan</label>
+          <input type="text" id="stockFSatuan" placeholder="pcs" value="pcs">
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Qty</label>
+          <input type="number" id="stockFQty" min="0" value="0">
+        </div>
+        <div class="dash-field">
+          <label>Reorder Point</label>
+          <input type="number" id="stockFReorderPoint" min="0">
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Supplier</label>
+          <input type="text" id="stockFSupplier" list="stockSupplierList" placeholder="Nama supplier">
+          <datalist id="stockSupplierList"></datalist>
+        </div>
+        <div class="dash-field">
+          <label>Cabang / Gudang</label>
+          <input type="text" id="stockFGudang" list="stockGudangList" placeholder="Contoh: Cabang Jakarta Pusat">
+          <datalist id="stockGudangList"></datalist>
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Harga Beli (Rp)</label>
+          <input type="number" id="stockFHargaBeli" min="0" step="1000">
+        </div>
+        <div class="dash-field">
+          <label>Harga Jual (Rp)</label>
+          <input type="number" id="stockFHargaJual" min="0" step="1000">
+        </div>
+      </div>
+      <div class="dash-modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeStockModal()">Batal</button>
+        <button class="btn" type="button" onclick="saveStockForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-modal-overlay" id="rkModalOverlay">
+    <div class="dash-modal">
+      <h2 id="rkModalTitle">Tambah Retur/Klaim</h2>
+      <input type="hidden" id="rkFormId">
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Tipe</label>
+          <select id="rkFTipeForm">
+            <option value="Retur Cabang">Retur Cabang</option>
+            <option value="Retur ke Supplier">Retur ke Supplier</option>
+          </select>
+        </div>
+        <div class="dash-field">
+          <label>Kategori Barang</label>
+          <input type="text" id="rkFKategoriForm" list="rkKategoriList" placeholder="Contoh: Unit iPhone">
+          <datalist id="rkKategoriList"><option value="Unit iPhone"><option value="Sparepart"><option value="Aksesoris"><option value="Dusbox"></datalist>
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Referensi</label>
+          <input type="text" id="rkFReferensi" placeholder="Contoh: U0001 / IMEI 351234567890123">
+        </div>
+        <div class="dash-field">
+          <label>IMEI <span style="color:var(--muted);font-weight:400;">(opsional, kalau Unit iPhone)</span></label>
+          <input type="text" id="rkFImei" placeholder="15 digit">
+        </div>
+      </div>
+      <div class="dash-field">
+        <label>Deskripsi</label>
+        <input type="text" id="rkFDeskripsi" placeholder="Contoh: iPhone 15 Blue 256GB">
+      </div>
+      <div class="dash-field">
+        <label>Alasan</label>
+        <input type="text" id="rkFAlasan" placeholder="Contoh: Unit mati total">
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Tanggal</label>
+          <input type="date" id="rkFTanggal">
+        </div>
+        <div class="dash-field">
+          <label>Status</label>
+          <select id="rkFStatusForm">
+            <option value="Diajukan">Diajukan</option>
+            <option value="Diproses">Diproses</option>
+            <option value="Disetujui">Disetujui</option>
+            <option value="Disetujui - Refund">Disetujui - Refund</option>
+            <option value="Disetujui - Tukar Unit">Disetujui - Tukar Unit</option>
+            <option value="Ditolak">Ditolak</option>
+            <option value="Selesai">Selesai</option>
+          </select>
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Nilai (Rp)</label>
+          <input type="number" id="rkFNilai" min="0" step="1000">
+        </div>
+        <div class="dash-field">
+          <label>Pihak Terkait</label>
+          <input type="text" id="rkFPihakTerkait" placeholder="Nama customer/supplier">
+        </div>
+      </div>
+      <div class="dash-field">
+        <label>Catatan</label>
+        <input type="text" id="rkFCatatan" placeholder="-">
+      </div>
+      <div class="dash-modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeRkModal()">Batal</button>
+        <button class="btn" type="button" onclick="saveRkForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
   <div class="dash-modal-overlay" id="poModalOverlay">
     <div class="dash-modal">
       <h2 id="poModalTitle">Tambah Purchase Order</h2>
