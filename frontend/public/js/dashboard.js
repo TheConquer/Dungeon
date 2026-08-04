@@ -1609,6 +1609,22 @@ function downloadCSV(content, filename){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+// Template import dipakai sebagai .xlsx (bukan .csv) supaya setiap kolom pasti kebuka jadi
+// cell terpisah di Excel. CSV pakai koma sebagai pemisah, tapi Excel dengan region Indonesia
+// (pemisah desimal koma) otomatis menganggap pemisah kolom itu titik-koma — hasilnya semua
+// data nyangkut di satu cell. .xlsx tidak punya masalah ini karena strukturnya sudah per-cell,
+// tidak tergantung pengaturan region sama sekali.
+function downloadTemplateXLSX(rows, columns, filename){
+  const data = rows.map(r=>{
+    const obj = {};
+    columns.forEach(c=>{ obj[c.label] = (r[c.key]===null || r[c.key]===undefined) ? '' : r[c.key]; });
+    return obj;
+  });
+  const ws = XLSX.utils.json_to_sheet(data, {header: columns.map(c=>c.label)});
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Template');
+  XLSX.writeFile(wb, filename);
+}
 document.getElementById('btnExportInventory').addEventListener('click', ()=>{
   const cols = [
     {key:'id',label:'ID Unit'},{key:'imei',label:'IMEI'},{key:'model',label:'Model'},{key:'warna',label:'Warna'},
@@ -2752,7 +2768,7 @@ function buildImportUI(){
       <h3>${cfg.label}</h3>
       <div class="imp-sub">Kolom: ${cfg.columns.join(', ')}</div>
       <div class="btn-row" style="margin-bottom:0;">
-        <button class="btn btn-outline" data-download="${cfg.key}" type="button">⬇ Download Template (CSV)</button>
+        <button class="btn btn-outline" data-download="${cfg.key}" type="button">⬇ Download Template (Excel)</button>
       </div>
       <label style="display:block;font-size:11px;color:var(--muted);margin:10px 0 2px;">Ganti Semua Data (isi file = seluruh data baru, yang lama ditimpa)</label>
       <input type="file" accept=".csv,.xlsx,.xls" data-upload="${cfg.key}">
@@ -2767,7 +2783,7 @@ function buildImportUI(){
         <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:2px;">💰 Import Unit Terjual (tandai unit yang sudah ada jadi Terjual dari file, TANPA mengubah data fisik unit lain)</label>
         <div class="imp-sub">Kolom: imei, tanggal_terjual, harga_jual</div>
         <div class="btn-row" style="margin-bottom:6px;">
-          <button class="btn btn-outline" type="button" id="btnDownloadSoldTemplate">⬇ Download Template (CSV)</button>
+          <button class="btn btn-outline" type="button" id="btnDownloadSoldTemplate">⬇ Download Template (Excel)</button>
         </div>
         <input type="file" accept=".csv,.xlsx,.xls" data-upload-sold="unit">
         <div class="imp-status" id="impStatus-unit-sold"></div>
@@ -2776,8 +2792,7 @@ function buildImportUI(){
 
   importConfigs.forEach(cfg=>{
     document.querySelector(`[data-download="${cfg.key}"]`).addEventListener('click', ()=>{
-      const csv = toCSV([cfg.example], cfg.columns.map(c=>({key:c, label:c})));
-      downloadCSV(csv, `template_${cfg.key}.csv`);
+      downloadTemplateXLSX([cfg.example], cfg.columns.map(c=>({key:c, label:c})), `template_${cfg.key}.xlsx`);
     });
     document.querySelector(`[data-upload="${cfg.key}"]`).addEventListener('change', (e)=>{
       const file = e.target.files[0];
@@ -2856,7 +2871,7 @@ function buildImportUI(){
         {key:'imei', label:'imei'}, {key:'tanggal_terjual', label:'tanggal_terjual'}, {key:'harga_jual', label:'harga_jual'},
       ];
       const example = {imei:'351234567890123', tanggal_terjual:REF_TODAY_STR, harga_jual:15000000};
-      downloadCSV(toCSV([example], columns), 'template_unit_terjual.csv');
+      downloadTemplateXLSX([example], columns, 'template_unit_terjual.xlsx');
     });
   }
   const soldInput = document.querySelector('[data-upload-sold="unit"]');
