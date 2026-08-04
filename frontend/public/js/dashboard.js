@@ -433,6 +433,21 @@ function jumpToUnitService(imei){
 }
 window.jumpToUnitService = jumpToUnitService;
 
+// Tombol "🛠️ Service" di Data Unit — buat tiket Unit Service baru langsung dari satu unit
+// iPhone (dipakai buat unit yang ditandai Trouble dan mau benar-benar dikirim ke servis).
+function openServiceTicketFromUnit(imei){
+  const d = inventoryData.find(u=>u.imei===imei);
+  if(!d) return;
+  document.querySelector('#tabNav .tab-btn[data-tab="service"]').click();
+  if(window.svcApp && window.svcApp.openAddModalFromDashboard){
+    window.svcApp.openAddModalFromDashboard({
+      series: d.model, capacity: d.kapasitas, color: d.warna, imei: d.imei,
+      issue: (d.catatan && d.catatan!=='-') ? d.catatan : '',
+    });
+  }
+}
+window.openServiceTicketFromUnit = openServiceTicketFromUnit;
+
 function jumpToRetur(imei){
   document.querySelector('#tabNav .tab-btn[data-tab="returklaim"]').click();
   document.getElementById('rkSearch').value = imei;
@@ -472,7 +487,7 @@ function renderTable(){
       <td>${d.catatan}</td>
       <td>${fmtRp(d.harga_beli)}</td>
       <td>${fmtRp(d.harga_jual)}</td>
-      <td><div class="row-actions"><button type="button" onclick="openUnitModal('${d.id}')">Edit</button><button type="button" class="del" onclick="deleteUnitConfirm('${d.id}')">Hapus</button></div></td>
+      <td><div class="row-actions"><button type="button" onclick="openServiceTicketFromUnit('${d.imei}')" title="Buat tiket Unit Service dari unit ini">🛠️ Service</button><button type="button" onclick="openUnitModal('${d.id}')">Edit</button><button type="button" class="del" onclick="deleteUnitConfirm('${d.id}')">Hapus</button></div></td>
     </tr>`;}).join('');
   document.getElementById('tableCount').textContent = `(${inventoryData.length} unit total)`;
 }

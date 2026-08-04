@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const svcApp = { addBulkRow, addExtBulkRow, addSparepartBulkRow, closeAddModal, closeExtAddModal, closeExtModal, closeModal, closePicker, closeSparepartModal, closeSparepartPicker, confirmPicker, confirmSparepartPicker, deleteExtUnit, deleteSparepart, deleteUnit, editExtUnit, editUnit, exportExcel, exportExtExcel, exportSparepartExcel, extRender, extSortBy, filterPicker, filterSparepartPicker, handleImportExtFile, handleImportFile, openAddModal, openExtAddModal, openPicker, openSparepartModal, openSparepartPicker, releaseSparepart, render, renderSparepartTable, saveBulk, saveExtBulk, saveExtUnit, saveSparepartBulk, saveUnit, sortBy, switchTab, togglePickerItem, toggleSparepartPickerItem, findByImei, jumpFromDashboard, getSummary };
+  const svcApp = { addBulkRow, addExtBulkRow, addSparepartBulkRow, closeAddModal, closeExtAddModal, closeExtModal, closeModal, closePicker, closeSparepartModal, closeSparepartPicker, confirmPicker, confirmSparepartPicker, deleteExtUnit, deleteSparepart, deleteUnit, editExtUnit, editUnit, exportExcel, exportExtExcel, exportSparepartExcel, extRender, extSortBy, filterPicker, filterSparepartPicker, handleImportExtFile, handleImportFile, openAddModal, openAddModalFromDashboard, openExtAddModal, openPicker, openSparepartModal, openSparepartPicker, releaseSparepart, render, renderSparepartTable, saveBulk, saveExtBulk, saveExtUnit, saveSparepartBulk, saveUnit, sortBy, switchTab, togglePickerItem, toggleSparepartPickerItem, findByImei, jumpFromDashboard, getSummary };
   window.svcApp = svcApp;
 
 const statusLabel = {
@@ -464,6 +464,22 @@ function bulkRowTemplate() {
 function openAddModal() {
   document.getElementById('svc_bulkBody').innerHTML = '';
   svcApp.addBulkRow();
+  document.getElementById('svc_addModalOverlay').classList.add('open');
+}
+
+// Dipanggil dari tombol "🛠️ Service" di Data Unit (dashboard.js) — buka modal Tambah unit
+// service dengan satu baris sudah keisi dari data unit iPhone yang diklik. Tetap lewat modal
+// bulk (svc_addModalOverlay) karena svc_modalOverlay ("Edit unit service") memang cuma bisa
+// dipakai untuk edit unit yang sudah ada, tidak ada jalur create di situ.
+function openAddModalFromDashboard(data){
+  document.getElementById('svc_bulkBody').innerHTML = '';
+  svcApp.addBulkRow();
+  const row = document.getElementById('svc_bulkBody').lastElementChild;
+  row.querySelector('.r-series').value = data.series || '';
+  if(data.capacity) row.querySelector('.r-capacity').value = data.capacity;
+  row.querySelector('.r-color').value = data.color || '';
+  row.querySelector('.r-imei').value = data.imei || '';
+  row.querySelector('.r-issue').value = data.issue || '';
   document.getElementById('svc_addModalOverlay').classList.add('open');
 }
 
