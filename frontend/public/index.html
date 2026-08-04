@@ -375,13 +375,12 @@
       <div class="filters">
         <input type="text" id="dusboxSearch" placeholder="Cari model, SKU...">
         <select id="dusboxFModel"><option value="">Semua Model</option></select>
-        <select id="dusboxFKondisi"><option value="">Semua Kondisi</option></select>
         <select id="dusboxFGudang"><option value="">Semua Cabang</option></select>
       </div>
       <div class="result-count" id="dusboxResultCount"></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Jenis</th><th>Model</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th><th>Aksi</th></tr></thead>
+          <thead><tr><th>Jenis</th><th>Model</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th><th>Aksi</th></tr></thead>
           <tbody id="dusboxTbody"></tbody>
         </table>
       </div>
@@ -418,7 +417,7 @@
       <div class="result-count" id="aksesorisResultCount"></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th><th>Aksi</th></tr></thead>
+          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th><th>Aksi</th></tr></thead>
           <tbody id="aksesorisTbody"></tbody>
         </table>
       </div>
@@ -449,13 +448,12 @@
       <div class="filters">
         <input type="text" id="sparepartSearch" placeholder="Cari jenis, model, SKU...">
         <select id="sparepartFJenis"><option value="">Semua Jenis</option></select>
-        <select id="sparepartFKondisi"><option value="">Semua Kondisi</option></select>
         <select id="sparepartFGudang"><option value="">Semua Cabang</option></select>
       </div>
       <div class="result-count" id="sparepartResultCount"></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Kondisi</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th><th>Aksi</th></tr></thead>
+          <thead><tr><th>Jenis</th><th>Kompatibel</th><th>Qty</th><th>Cabang</th><th>Supplier</th><th>Harga Beli</th><th>Harga Jual</th><th>Update Terakhir</th><th>Aksi</th></tr></thead>
           <tbody id="sparepartTbody"></tbody>
         </table>
       </div>
@@ -1380,45 +1378,39 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
       </div>
       <div class="dash-field-row">
         <div class="dash-field">
-          <label>Kondisi</label>
-          <input type="text" id="stockFKondisi" placeholder="Contoh: Baik / Original Sealed">
-        </div>
-        <div class="dash-field">
           <label>Satuan</label>
           <input type="text" id="stockFSatuan" placeholder="pcs" value="pcs">
         </div>
-      </div>
-      <div class="dash-field-row">
         <div class="dash-field">
           <label>Qty</label>
           <input type="number" id="stockFQty" min="0" value="0">
         </div>
+      </div>
+      <div class="dash-field-row">
         <div class="dash-field">
           <label>Reorder Point</label>
           <input type="number" id="stockFReorderPoint" min="0">
         </div>
-      </div>
-      <div class="dash-field-row">
         <div class="dash-field">
           <label>Supplier</label>
           <input type="text" id="stockFSupplier" list="stockSupplierList" placeholder="Nama supplier">
           <datalist id="stockSupplierList"></datalist>
         </div>
+      </div>
+      <div class="dash-field-row">
         <div class="dash-field">
           <label>Cabang / Gudang</label>
           <input type="text" id="stockFGudang" list="stockGudangList" placeholder="Contoh: Cabang Jakarta Pusat">
           <datalist id="stockGudangList"></datalist>
         </div>
-      </div>
-      <div class="dash-field-row">
         <div class="dash-field">
           <label>Harga Beli (Rp)</label>
           <input type="number" id="stockFHargaBeli" min="0" step="1000">
         </div>
-        <div class="dash-field">
-          <label>Harga Jual (Rp)</label>
-          <input type="number" id="stockFHargaJual" min="0" step="1000">
-        </div>
+      </div>
+      <div class="dash-field">
+        <label>Harga Jual (Rp)</label>
+        <input type="number" id="stockFHargaJual" min="0" step="1000">
       </div>
       <div class="dash-modal-actions">
         <button class="btn btn-outline" type="button" onclick="closeStockModal()">Batal</button>

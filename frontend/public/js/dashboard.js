@@ -1802,11 +1802,9 @@ const dusboxDash = buildCategoryDashboard({ data:dusboxData, prefix:'dusbox', gr
 function renderDusboxTable(){
   const search = document.getElementById('dusboxSearch').value.toLowerCase();
   const fModel = document.getElementById('dusboxFModel').value;
-  const fKondisi = document.getElementById('dusboxFKondisi').value;
   const fGudang = document.getElementById('dusboxFGudang').value;
   let rows = dusboxData.filter(d=>{
     if(fModel && d.kompatibel_model!==fModel) return false;
-    if(fKondisi && d.kondisi!==fKondisi) return false;
     if(fGudang && d.gudang!==fGudang) return false;
     if(search && !`${d.jenis} ${d.sku_id} ${d.kompatibel_model}`.toLowerCase().includes(search)) return false;
     return true;
@@ -1814,9 +1812,9 @@ function renderDusboxTable(){
   document.getElementById('dusboxResultCount').textContent = `Menampilkan ${rows.length} dari ${dusboxData.length} SKU`;
   document.getElementById('dusboxTableCount').textContent = `(${dusboxData.length} SKU total)`;
   document.getElementById('dusboxTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Dusbox','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('dusbox','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('dusbox','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
+    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Dusbox','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('dusbox','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('dusbox','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
 }
-['dusboxSearch','dusboxFModel','dusboxFKondisi','dusboxFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderDusboxTable));
+['dusboxSearch','dusboxFModel','dusboxFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderDusboxTable));
 
 // ---- Aksesoris ----
 const aksesorisDash = buildCategoryDashboard({ data:aksesorisData, prefix:'aksesoris', groupKey:'jenis', chartId:'chartAksesoris' });
@@ -1835,7 +1833,7 @@ function renderAksesorisTable(){
   document.getElementById('aksesorisResultCount').textContent = `Menampilkan ${rows.length} dari ${aksesorisData.length} SKU`;
   document.getElementById('aksesorisTableCount').textContent = `(${aksesorisData.length} SKU total)`;
   document.getElementById('aksesorisTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Aksesoris','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('aksesoris','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('aksesoris','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
+    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Aksesoris','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('aksesoris','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('aksesoris','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
 }
 ['aksesorisSearch','aksesorisFJenis','aksesorisFGudang','aksesorisFSupplier'].forEach(id=>document.getElementById(id).addEventListener('input', renderAksesorisTable));
 
@@ -1844,11 +1842,9 @@ const sparepartDash = buildCategoryDashboard({ data:sparepartData, prefix:'spare
 function renderSparepartTable(){
   const search = document.getElementById('sparepartSearch').value.toLowerCase();
   const fJenis = document.getElementById('sparepartFJenis').value;
-  const fKondisi = document.getElementById('sparepartFKondisi').value;
   const fGudang = document.getElementById('sparepartFGudang').value;
   let rows = sparepartData.filter(d=>{
     if(fJenis && d.jenis!==fJenis) return false;
-    if(fKondisi && d.kondisi!==fKondisi) return false;
     if(fGudang && d.gudang!==fGudang) return false;
     if(search && !`${d.jenis} ${d.sku_id} ${d.kompatibel_model}`.toLowerCase().includes(search)) return false;
     return true;
@@ -1856,9 +1852,9 @@ function renderSparepartTable(){
   document.getElementById('sparepartResultCount').textContent = `Menampilkan ${rows.length} dari ${sparepartData.length} SKU`;
   document.getElementById('sparepartTableCount').textContent = `(${sparepartData.length} SKU total)`;
   document.getElementById('sparepartTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Sparepart','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('sparepart','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('sparepart','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
+    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Sparepart','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('sparepart','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('sparepart','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
 }
-['sparepartSearch','sparepartFJenis','sparepartFKondisi','sparepartFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderSparepartTable));
+['sparepartSearch','sparepartFJenis','sparepartFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderSparepartTable));
 
 // ---------- Dusbox/Aksesoris/Sparepart: Tambah/Edit/Hapus (modal generik, field-nya identik) ----------
 function nextStockSkuId(arr, prefix){
@@ -1896,7 +1892,6 @@ function openStockModal(category, id){
     if(!d) return;
     document.getElementById('stockFJenis').value = d.jenis;
     document.getElementById('stockFKompatibel').value = d.kompatibel_model || '';
-    document.getElementById('stockFKondisi').value = d.kondisi;
     document.getElementById('stockFSatuan').value = d.satuan || 'pcs';
     document.getElementById('stockFQty').value = d.qty;
     document.getElementById('stockFReorderPoint').value = d.reorder_point;
@@ -1907,7 +1902,6 @@ function openStockModal(category, id){
   }else{
     document.getElementById('stockFJenis').value = '';
     document.getElementById('stockFKompatibel').value = '';
-    document.getElementById('stockFKondisi').value = '';
     document.getElementById('stockFSatuan').value = 'pcs';
     document.getElementById('stockFQty').value = 0;
     document.getElementById('stockFReorderPoint').value = cfg.defaultReorder;
@@ -1932,7 +1926,6 @@ function saveStockForm(){
   const id = document.getElementById('stockFormId').value;
   const jenis = document.getElementById('stockFJenis').value.trim();
   const kompatibel = document.getElementById('stockFKompatibel').value.trim();
-  const kondisi = document.getElementById('stockFKondisi').value.trim();
   const satuan = document.getElementById('stockFSatuan').value.trim() || 'pcs';
   const qty = parseInt(document.getElementById('stockFQty').value,10) || 0;
   const reorderPoint = parseInt(document.getElementById('stockFReorderPoint').value,10) || 0;
@@ -1941,13 +1934,13 @@ function saveStockForm(){
   const hargaBeli = parseFloat(document.getElementById('stockFHargaBeli').value) || 0;
   const hargaJual = parseFloat(document.getElementById('stockFHargaJual').value) || 0;
 
-  if(!jenis || !kondisi || !supplier || !gudang){
-    alert('Lengkapi dulu Jenis, Kondisi, Supplier & Cabang.');
+  if(!jenis || !supplier || !gudang){
+    alert('Lengkapi dulu Jenis, Supplier & Cabang.');
     return;
   }
 
   const payload = {
-    jenis, kompatibel_model: kompatibel, kondisi, satuan, qty, reorder_point: reorderPoint,
+    jenis, kompatibel_model: kompatibel, satuan, qty, reorder_point: reorderPoint,
     supplier, gudang, harga_beli: hargaBeli, harga_jual: hargaJual, tanggal_update: REF_TODAY_STR,
   };
 
@@ -2427,17 +2420,15 @@ function makeStockBulkConfig(category, getArr, persistKey, defaultReorder){
     columns: [
       {key:'jenis', label:'Jenis*', type:'text', width:150},
       {key:'kompatibel_model', label:'Kompatibel', type:'text', width:110, list:'stockModelList'},
-      {key:'kondisi', label:'Kondisi*', type:'text', width:100},
       {key:'qty', label:'Qty*', type:'number', width:70},
       {key:'supplier', label:'Supplier*', type:'text', width:140},
       {key:'gudang', label:'Gudang*', type:'text', width:140},
       {key:'harga_beli', label:'Harga Beli', type:'number', width:110},
       {key:'harga_jual', label:'Harga Jual', type:'number', width:110},
     ],
-    pasteHint: 'Urutan kolom: Jenis, Kompatibel Model, Kondisi, Qty, Supplier, Gudang, Harga Beli, Harga Jual. Pisahkan tiap kolom dengan Tab (langsung dari paste Excel), satu baris per SKU.',
+    pasteHint: 'Urutan kolom: Jenis, Kompatibel Model, Qty, Supplier, Gudang, Harga Beli, Harga Jual. Pisahkan tiap kolom dengan Tab (langsung dari paste Excel), satu baris per SKU.',
     validateRow(v){
       if(!v.jenis) return 'Jenis wajib diisi';
-      if(!v.kondisi) return 'Kondisi wajib diisi';
       if(!v.supplier) return 'Supplier wajib diisi';
       if(!v.gudang) return 'Gudang wajib diisi';
       return null;
@@ -2445,7 +2436,7 @@ function makeStockBulkConfig(category, getArr, persistKey, defaultReorder){
     buildRow(v){
       return {
         sku_id: nextStockSkuId(getArr(), prefix), jenis: v.jenis, kompatibel_model: v.kompatibel_model||'',
-        kondisi: v.kondisi, qty: Number(v.qty)||0, satuan: 'pcs',
+        qty: Number(v.qty)||0, satuan: 'pcs',
         harga_beli: Number(v.harga_beli)||0, harga_jual: Number(v.harga_jual)||0,
         supplier: v.supplier, gudang: v.gudang, reorder_point: defaultReorder, tanggal_update: REF_TODAY_STR,
       };
@@ -2713,11 +2704,11 @@ const importConfigs = [
   },
   {
     key:'dusbox', label:'Dusbox', arr:dusboxData,
-    columns:['jenis','kompatibel_model','kondisi','qty','harga_beli','harga_jual','supplier','gudang','reorder_point'],
-    example:{jenis:'Dusbox iPhone 15', kompatibel_model:'iPhone 15', kondisi:'Baik', qty:12, harga_beli:50000, harga_jual:60000, supplier:'CV Gadget Prima', gudang:'Cabang Jakarta Pusat', reorder_point:10},
+    columns:['jenis','kompatibel_model','qty','harga_beli','harga_jual','supplier','gudang','reorder_point'],
+    example:{jenis:'Dusbox iPhone 15', kompatibel_model:'iPhone 15', qty:12, harga_beli:50000, harga_jual:60000, supplier:'CV Gadget Prima', gudang:'Cabang Jakarta Pusat', reorder_point:10},
     transform:(row, idx)=>({
       sku_id: row.sku_id || ('IMP-DB'+String(idx+1).padStart(4,'0')),
-      jenis: row.jenis||'', kompatibel_model: row.kompatibel_model||'', kondisi: row.kondisi||'Baik',
+      jenis: row.jenis||'', kompatibel_model: row.kompatibel_model||'',
       qty: Number(row.qty)||0, satuan:'pcs', harga_beli:Number(row.harga_beli)||0, harga_jual:Number(row.harga_jual)||0,
       supplier: row.supplier||'', gudang: row.gudang||'', reorder_point:Number(row.reorder_point)||10,
       tanggal_update: REF_TODAY_STR
@@ -2725,11 +2716,11 @@ const importConfigs = [
   },
   {
     key:'aksesoris', label:'Aksesoris', arr:aksesorisData,
-    columns:['jenis','kompatibel_model','kondisi','qty','harga_beli','harga_jual','supplier','gudang','reorder_point'],
-    example:{jenis:'Charger 20W Original', kompatibel_model:'Universal', kondisi:'Original Sealed', qty:30, harga_beli:120000, harga_jual:170000, supplier:'Agen Erafone Pusat', gudang:'Cabang Surabaya', reorder_point:15},
+    columns:['jenis','kompatibel_model','qty','harga_beli','harga_jual','supplier','gudang','reorder_point'],
+    example:{jenis:'Charger 20W Original', kompatibel_model:'Universal', qty:30, harga_beli:120000, harga_jual:170000, supplier:'Agen Erafone Pusat', gudang:'Cabang Surabaya', reorder_point:15},
     transform:(row, idx)=>({
       sku_id: row.sku_id || ('IMP-ACC'+String(idx+1).padStart(4,'0')),
-      jenis: row.jenis||'', kompatibel_model: row.kompatibel_model||'Universal', kondisi: row.kondisi||'',
+      jenis: row.jenis||'', kompatibel_model: row.kompatibel_model||'Universal',
       qty: Number(row.qty)||0, satuan:'pcs', harga_beli:Number(row.harga_beli)||0, harga_jual:Number(row.harga_jual)||0,
       supplier: row.supplier||'', gudang: row.gudang||'', reorder_point:Number(row.reorder_point)||15,
       tanggal_update: REF_TODAY_STR
@@ -2737,11 +2728,11 @@ const importConfigs = [
   },
   {
     key:'sparepart', label:'Sparepart', arr:sparepartData,
-    columns:['jenis','kompatibel_model','kondisi','qty','harga_beli','harga_jual','supplier','gudang','reorder_point'],
-    example:{jenis:'LCD Assembly', kompatibel_model:'iPhone 15', kondisi:'Original', qty:8, harga_beli:850000, harga_jual:1100000, supplier:'PT Trikomsel Abadi', gudang:'Cabang Bandung', reorder_point:5},
+    columns:['jenis','kompatibel_model','qty','harga_beli','harga_jual','supplier','gudang','reorder_point'],
+    example:{jenis:'LCD Assembly', kompatibel_model:'iPhone 15', qty:8, harga_beli:850000, harga_jual:1100000, supplier:'PT Trikomsel Abadi', gudang:'Cabang Bandung', reorder_point:5},
     transform:(row, idx)=>({
       sku_id: row.sku_id || ('IMP-SP'+String(idx+1).padStart(4,'0')),
-      jenis: row.jenis||'', kompatibel_model: row.kompatibel_model||'', kondisi: row.kondisi||'',
+      jenis: row.jenis||'', kompatibel_model: row.kompatibel_model||'',
       qty: Number(row.qty)||0, satuan:'pcs', harga_beli:Number(row.harga_beli)||0, harga_jual:Number(row.harga_jual)||0,
       supplier: row.supplier||'', gudang: row.gudang||'', reorder_point:Number(row.reorder_point)||5,
       tanggal_update: REF_TODAY_STR
@@ -2948,7 +2939,7 @@ function renderEverything(){
   dusboxDash.renderKpiCards();
   dusboxDash.renderChart();
   dusboxDash.renderReorderAlert();
-  dusboxDash.populateFilters([{id:'dusboxFModel',key:'kompatibel_model'},{id:'dusboxFKondisi',key:'kondisi'},{id:'dusboxFGudang',key:'gudang'}]);
+  dusboxDash.populateFilters([{id:'dusboxFModel',key:'kompatibel_model'},{id:'dusboxFGudang',key:'gudang'}]);
   renderDusboxTable();
 
   aksesorisDash.renderKpiCards();
@@ -2961,7 +2952,7 @@ function renderEverything(){
   sparepartDash.renderKpiCards();
   sparepartDash.renderChart();
   sparepartDash.renderReorderAlert();
-  sparepartDash.populateFilters([{id:'sparepartFJenis',key:'jenis'},{id:'sparepartFKondisi',key:'kondisi'},{id:'sparepartFGudang',key:'gudang'}]);
+  sparepartDash.populateFilters([{id:'sparepartFJenis',key:'jenis'},{id:'sparepartFGudang',key:'gudang'}]);
   renderSparepartTable();
   renderCategoryTransfer('sparepartTransferList','sparepartTransferCount', sparepartData);
 
@@ -3015,7 +3006,6 @@ window.dashboardBridge = {
         sku_id: 'SP-SVC' + Math.random().toString(36).slice(2,7).toUpperCase(),
         jenis: nama || 'Sparepart (Unit Service)',
         kompatibel_model: kompatibel || 'Universal',
-        kondisi: 'Original',
         qty: 0,
         satuan: 'pcs',
         harga_beli: 0,

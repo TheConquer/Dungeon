@@ -11,7 +11,7 @@ function nextSkuIdFor(table, idPrefix, padLength) {
 
 function makeStockItemModel(table, idPrefix, padLength, defaultReorderPoint) {
   const SELECT = `
-    SELECT t.sku_id, t.jenis, t.kompatibel_model, t.kondisi, t.qty, t.satuan,
+    SELECT t.sku_id, t.jenis, t.kompatibel_model, t.qty, t.satuan,
            t.harga_beli, t.harga_jual, s.nama AS supplier, b.nama AS gudang,
            t.reorder_point, t.tanggal_update
     FROM ${table} t
@@ -37,11 +37,11 @@ function makeStockItemModel(table, idPrefix, padLength, defaultReorderPoint) {
       const branchId = await resolveBranchId(client, data.gudang);
       const skuId = data.sku_id || (await nextSkuId(client));
       await client.query(
-        `INSERT INTO ${table} (sku_id, jenis, kompatibel_model, kondisi, qty, satuan, harga_beli, harga_jual,
+        `INSERT INTO ${table} (sku_id, jenis, kompatibel_model, qty, satuan, harga_beli, harga_jual,
                                 supplier_id, branch_id, reorder_point, tanggal_update)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, CURRENT_DATE)`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, CURRENT_DATE)`,
         [
-          skuId, data.jenis, data.kompatibel_model || null, data.kondisi, data.qty || 0,
+          skuId, data.jenis, data.kompatibel_model || null, data.qty || 0,
           data.satuan || 'pcs', data.harga_beli || 0, data.harga_jual || 0, supplierId, branchId,
           data.reorder_point || defaultReorderPoint,
         ]
@@ -55,11 +55,11 @@ function makeStockItemModel(table, idPrefix, padLength, defaultReorderPoint) {
       const supplierId = await resolveSupplierId(client, data.supplier);
       const branchId = await resolveBranchId(client, data.gudang);
       await client.query(
-        `UPDATE ${table} SET jenis=$2, kompatibel_model=$3, kondisi=$4, qty=$5, satuan=$6, harga_beli=$7,
-                              harga_jual=$8, supplier_id=$9, branch_id=$10, reorder_point=$11, tanggal_update=CURRENT_DATE
+        `UPDATE ${table} SET jenis=$2, kompatibel_model=$3, qty=$4, satuan=$5, harga_beli=$6,
+                              harga_jual=$7, supplier_id=$8, branch_id=$9, reorder_point=$10, tanggal_update=CURRENT_DATE
          WHERE sku_id=$1`,
         [
-          skuId, data.jenis, data.kompatibel_model || null, data.kondisi, data.qty, data.satuan,
+          skuId, data.jenis, data.kompatibel_model || null, data.qty, data.satuan,
           data.harga_beli, data.harga_jual, supplierId, branchId, data.reorder_point,
         ]
       );
@@ -112,9 +112,9 @@ function makeStockItemModel(table, idPrefix, padLength, defaultReorderPoint) {
       const supplierId = await resolveSupplierId(client, 'Input dari Unit Service');
       const { rows: fallbackGudang } = await client.query(`SELECT branch_id FROM ${table} WHERE branch_id IS NOT NULL LIMIT 1`);
       await client.query(
-        `INSERT INTO ${table} (sku_id, jenis, kompatibel_model, kondisi, qty, satuan, harga_beli, harga_jual,
+        `INSERT INTO ${table} (sku_id, jenis, kompatibel_model, qty, satuan, harga_beli, harga_jual,
                                 supplier_id, branch_id, reorder_point, tanggal_update)
-         VALUES ($1,$2,$3,'Original',0,'pcs',0,0,$4,$5,5,CURRENT_DATE)`,
+         VALUES ($1,$2,$3,0,'pcs',0,0,$4,$5,5,CURRENT_DATE)`,
         [skuId, nama || 'Sparepart (Unit Service)', kompatibel || 'Universal', supplierId, (fallbackGudang[0] && fallbackGudang[0].branch_id) || null]
       );
     }
@@ -130,15 +130,15 @@ function makeStockItemModel(table, idPrefix, padLength, defaultReorderPoint) {
         const branchId = await resolveBranchId(client, r.gudang);
         const skuId = r.sku_id || `IMP-${idPrefix}${String(idx + 1).padStart(4, '0')}`;
         await client.query(
-          `INSERT INTO ${table} (sku_id, jenis, kompatibel_model, kondisi, qty, satuan, harga_beli, harga_jual,
+          `INSERT INTO ${table} (sku_id, jenis, kompatibel_model, qty, satuan, harga_beli, harga_jual,
                                   supplier_id, branch_id, reorder_point, tanggal_update)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, CURRENT_DATE)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, CURRENT_DATE)
            ON CONFLICT (sku_id) DO UPDATE SET jenis=EXCLUDED.jenis, kompatibel_model=EXCLUDED.kompatibel_model,
-             kondisi=EXCLUDED.kondisi, qty=EXCLUDED.qty, satuan=EXCLUDED.satuan, harga_beli=EXCLUDED.harga_beli,
+             qty=EXCLUDED.qty, satuan=EXCLUDED.satuan, harga_beli=EXCLUDED.harga_beli,
              harga_jual=EXCLUDED.harga_jual, supplier_id=EXCLUDED.supplier_id, branch_id=EXCLUDED.branch_id,
              reorder_point=EXCLUDED.reorder_point, tanggal_update=CURRENT_DATE`,
           [
-            skuId, r.jenis || '', r.kompatibel_model || null, r.kondisi || '', Number(r.qty) || 0, 'pcs',
+            skuId, r.jenis || '', r.kompatibel_model || null, Number(r.qty) || 0, 'pcs',
             Number(r.harga_beli) || 0, Number(r.harga_jual) || 0, supplierId, branchId,
             Number(r.reorder_point) || defaultReorderPoint,
           ]

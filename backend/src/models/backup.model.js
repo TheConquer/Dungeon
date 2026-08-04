@@ -121,11 +121,11 @@ async function restoreFromBackup(data) {
         const supplierId = await resolveSupplierId(client, r.supplier);
         const branchId = await resolveBranchId(client, r.gudang);
         await client.query(
-          `INSERT INTO ${table} (sku_id, jenis, kompatibel_model, kondisi, qty, satuan, harga_beli, harga_jual,
+          `INSERT INTO ${table} (sku_id, jenis, kompatibel_model, qty, satuan, harga_beli, harga_jual,
                                   supplier_id, branch_id, reorder_point, tanggal_update)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
           [
-            r.sku_id, r.jenis, r.kompatibel_model || null, r.kondisi, r.qty || 0, r.satuan || 'pcs',
+            r.sku_id, r.jenis, r.kompatibel_model || null, r.qty || 0, r.satuan || 'pcs',
             r.harga_beli || 0, r.harga_jual || 0, supplierId, branchId, r.reorder_point || 0,
             r.tanggal_update || null,
           ]
