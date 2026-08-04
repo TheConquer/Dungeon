@@ -560,7 +560,37 @@ function updatePrintDateOptions(){
   }
 }
 
+function getStokSummary(){
+  return {
+    total: items.length,
+    imei: items.filter(it => (it.type || 'imei') === 'imei').length,
+    sparepart: items.filter(it => it.type === 'sparepart').length,
+    flash: items.filter(it => it.type === 'flash').length,
+    baru: items.filter(it => it.batch === 'baru').length,
+  };
+}
+
+function renderRingkasanStiker(){
+  const el = document.getElementById('stk_ringkasanKpiGrid');
+  if(!el) return;
+  const {imei, sparepart, flash, baru} = getStokSummary();
+  const cards = [
+    {label:'Total Stiker', value:items.length, sub:'seluruh tipe', cls:'c-blue'},
+    {label:'Stiker IMEI', value:imei, sub:'unit iPhone', cls:'c-green'},
+    {label:'Stiker Sparepart', value:sparepart, sub:'komponen servis', cls:'c-cyan'},
+    {label:'Stiker Flashsale', value:flash, sub:'unit promo', cls:'c-purple'},
+    {label:'Belum Dicetak', value:baru, sub:'data baru ditambahkan', cls:'c-amber'},
+  ];
+  el.innerHTML = cards.map(c=>`
+    <div class="kpi ${c.cls}">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+}
+
 function renderList(){
+  renderRingkasanStiker();
   const stage = document.getElementById('stk_stage');
   stage.innerHTML = '';
   updatePrintDateOptions();
@@ -714,6 +744,7 @@ async function bootstrapStiker(){
   skuSet = new Set(items.filter(i => i.type === 'sparepart').map(i => i.kode));
   flashImeiSet = new Set(items.filter(i => i.type === 'flash').map(i => i.imei));
   renderList();
+  window.renderDashboardUtama?.();
 }
 bootstrapStiker();
 
@@ -733,7 +764,8 @@ window.stkApp = {
   exportPdf,
   exportExcel,
   markAllAsExisting,
-  renderList
+  renderList,
+  getSummary: getStokSummary
 };
 
 })();

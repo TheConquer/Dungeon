@@ -180,6 +180,68 @@ function jumpToSubtab(name){
 }
 window.jumpToSubtab = jumpToSubtab;
 
+function jumpToTab(name){
+  document.querySelector(`#tabNav .tab-btn[data-tab="${name}"]`)?.click();
+}
+window.jumpToTab = jumpToTab;
+
+// ---------- Dashboard Utama (rangkuman seluruh panel jadi satu landing page) ----------
+// Unit Service & Stiker Barcode adalah modul terpisah (service.js/sticker.js, masing-masing
+// IIFE sendiri dengan bootstrap async sendiri) — datanya diambil lewat svcApp.getSummary()/
+// stkApp.getSummary() yang mereka ekspos khusus untuk ini, bukan baca variabel internal langsung.
+function renderDashboardUtama(){
+  const grid = document.getElementById('dashUtamaGrandKpiGrid');
+  const menuGrid = document.getElementById('dashUtamaMenuGrid');
+  if(!grid || !menuGrid) return;
+
+  const kUnit = computeKPI(inventoryData);
+  const kDusbox = dusboxDash.computeKpi();
+  const kAksesoris = aksesorisDash.computeKpi();
+  const kSparepart = sparepartDash.computeKpi();
+  const nilaiStokBarang = kDusbox.totalNilai + kAksesoris.totalNilai + kSparepart.totalNilai;
+  const totalNilaiInventory = kUnit.nilaiStok + nilaiStokBarang;
+
+  // Unit aktif (bukan k.total) supaya konsisten dengan kartu "Unit iPhone" di Ringkasan
+  // Gabungan Seluruh Kategori paling atas halaman — dua-duanya sengaja tidak menghitung
+  // unit yang sudah Terjual, biar tidak membingungkan (dua angka beda utk label yang sama).
+  const unitAktif = inventoryData.filter(d=>effectiveStatus(d)!=='Terjual').length;
+  const rkBelumSelesai = returKlaimData.filter(r=>['Diajukan','Diproses'].includes(r.status)).length;
+  const svc = window.svcApp && window.svcApp.getSummary ? window.svcApp.getSummary() : {internalTotal:0,internalQueue:0,internalProgress:0,internalDone:0,externalTotal:0,externalProcess:0,externalDone:0};
+  const stk = window.stkApp && window.stkApp.getSummary ? window.stkApp.getSummary() : {total:0,imei:0,sparepart:0,flash:0,baru:0};
+  const svcDalamProses = svc.internalQueue + svc.internalProgress + svc.externalProcess;
+
+  const grandCards = [
+    {label:'Total Nilai Inventory', value:fmtRp(totalNilaiInventory), sub:'seluruh stok barang', cls:'c-green'},
+    {label:'Unit Trouble', value:kUnit.trouble, sub:'perlu tindak lanjut', cls:'c-red'},
+    {label:'Retur & Klaim Aktif', value:rkBelumSelesai, sub:'belum selesai', cls:'c-amber'},
+    {label:'Unit Service Dalam Proses', value:svcDalamProses, sub:'internal + eksternal', cls:'c-purple'},
+  ];
+  grid.innerHTML = grandCards.map(c=>`
+    <div class="kpi ${c.cls}">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+
+  const menuCards = [
+    {tab:'unit', label:'📱 Unit iPhone', value:unitAktif+' unit aktif', sub:`${kUnit.ready} Ready · ${kUnit.trouble} Trouble · ${kUnit.qcPending} Pending QC`, cls:'c-blue'},
+    {tab:'dusbox', label:'📦 Dusbox', value:kDusbox.totalQty+' pcs', sub:`${kDusbox.totalSku} SKU · ${fmtRp(kDusbox.totalNilai)}`, cls:'c-blue'},
+    {tab:'aksesoris', label:'🔌 Aksesoris', value:kAksesoris.totalQty+' pcs', sub:`${kAksesoris.totalSku} SKU · ${fmtRp(kAksesoris.totalNilai)}`, cls:'c-purple'},
+    {tab:'sparepart', label:'🔧 Sparepart', value:kSparepart.totalQty+' pcs', sub:`${kSparepart.totalSku} SKU · ${fmtRp(kSparepart.totalNilai)}`, cls:'c-cyan'},
+    {tab:'stoktrx', label:'🔀 Transaksi Item', value:stockTransaksiData.length+' transaksi', sub:'Masuk/Keluar/Pindah Cabang', cls:'c-amber'},
+    {tab:'returklaim', label:'🔄 Retur & Klaim', value:returKlaimData.length+' kasus', sub:`${rkBelumSelesai} belum selesai`, cls:'c-red'},
+    {tab:'service', label:'🛠️ Unit Service', value:(svc.internalTotal+svc.externalTotal)+' unit', sub:`${svcDalamProses} sedang diproses`, cls:'c-green'},
+    {tab:'stiker', label:'🏷️ Stiker Barcode', value:stk.total+' stiker', sub:`${stk.imei} IMEI · ${stk.sparepart} Sparepart · ${stk.flash} Flashsale`, cls:'c-purple'},
+  ];
+  menuGrid.innerHTML = menuCards.map(c=>`
+    <div class="kpi ${c.cls}" style="cursor:pointer;" onclick="jumpToTab('${c.tab}')">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+}
+window.renderDashboardUtama = renderDashboardUtama;
+
 // ---------- Charts ----------
 Chart.defaults.color = '#8b93ab';
 Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto";
@@ -1599,6 +1661,12 @@ document.querySelectorAll('#tabNav .tab-btn').forEach(btn=>{
       const ringkasanBtn = document.querySelector('#subtabNav .subtab-btn[data-subtab="ringkasan"]');
       if(ringkasanBtn) ringkasanBtn.click();
     }
+    // Re-render tiap kali dibuka (bukan cuma sekali di renderEverything) supaya angka dari
+    // Unit Service & Stiker Barcode — dua modul terpisah yang bootstrap datanya sendiri-sendiri
+    // secara async — selalu ikut ke-refresh walau load-nya lebih lambat dari dashboard utama.
+    if(btn.dataset.tab === 'dashboardutama'){
+      renderDashboardUtama();
+    }
   });
 });
 
@@ -2829,6 +2897,8 @@ function renderEverything(){
   renderRkTable();
   populateRkGagalQcFilters();
   renderRkGagalQc();
+
+  renderDashboardUtama();
 }
 
 // ---------- Bridge: sinkronisasi stok Sparepart dengan tab Unit Service ----------

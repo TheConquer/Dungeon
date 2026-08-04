@@ -33,7 +33,8 @@
   </div>
 
   <div class="tab-nav" id="tabNav">
-    <button class="tab-btn active" data-tab="unit">📱 Unit iPhone</button>
+    <button class="tab-btn active" data-tab="dashboardutama">🏠 Dashboard Utama</button>
+    <button class="tab-btn" data-tab="unit">📱 Unit iPhone</button>
     <button class="tab-btn" data-tab="dusbox">📦 Dusbox</button>
     <button class="tab-btn" data-tab="aksesoris">🔌 Aksesoris</button>
     <button class="tab-btn" data-tab="sparepart">🔧 Sparepart</button>
@@ -44,7 +45,20 @@
     <button class="tab-btn" data-tab="stiker">🏷️ Stiker Barcode</button>
   </div>
 
-  <div class="tab-content" id="tab-unit">
+  <div class="tab-content" id="tab-dashboardutama">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>🏠 Ringkasan Umum</h2>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Rangkuman angka-angka penting dari seluruh panel dalam satu tempat.</p>
+      <div class="kpi-grid" id="dashUtamaGrandKpiGrid"></div>
+    </div>
+    <div class="panel">
+      <h2>📋 Semua Panel</h2>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Klik salah satu kartu untuk langsung buka panelnya.</p>
+      <div class="kpi-grid" id="dashUtamaMenuGrid"></div>
+    </div>
+  </div><!-- /tab-dashboardutama -->
+
+  <div class="tab-content" id="tab-unit" style="display:none;">
 
   <div class="subtab-nav" id="subtabNav">
     <button class="subtab-btn active" data-subtab="ringkasan">📊 Ringkasan</button>
@@ -584,6 +598,7 @@
 
     <div class="note">Kategori kesulitan (HIGH / MID / LOW) terisi otomatis dari daftar standar. Satu unit bisa punya lebih dari satu perbaikan &mdash; klik tombol "Pilih perbaikan" lalu centang semua yang perlu dikerjakan. Sparepart dipilih berdasarkan IMEI/serial dari database sparepart (menu "Kelola Sparepart") dan otomatis ditandai terpakai. Data unit &amp; sparepart tersimpan otomatis ke database.</div>
 
+    <h2 style="margin:0 0 10px;">🛠️ Ringkasan Servis Internal</h2>
     <div class="stats" id="svc_stats"></div>
 
     <div class="toolbar">
@@ -642,6 +657,7 @@
 
     <div class="note">Untuk unit yang dititipkan/dikirim ke pihak eksternal (cabang lain atau vendor servis) karena perbaikannya tidak bisa ditangani in-house. Kategori tetap otomatis dari daftar standar yang sama. Data tersimpan otomatis ke database, terpisah dari data servis internal.</div>
 
+    <h2 style="margin:0 0 10px;">🚚 Ringkasan Servis Eksternal</h2>
     <div class="stats" id="svc_extStats"></div>
 
     <div class="toolbar">
@@ -1018,6 +1034,9 @@
     </div>
     <div class="tag">CODE 128</div>
   </div>
+
+  <h2 style="margin:0 0 10px;">🏷️ Ringkasan Stiker</h2>
+  <div class="kpi-grid" id="stk_ringkasanKpiGrid" style="margin-bottom:20px;"></div>
 
   <div class="mode-tabs">
     <button class="mode-tab-btn active" id="stk_modeImeiBtn" onclick="stkApp.switchMode('imei')">📱 Stiker IMEI</button>

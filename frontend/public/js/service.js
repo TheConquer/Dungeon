@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const svcApp = { addBulkRow, addExtBulkRow, addSparepartBulkRow, closeAddModal, closeExtAddModal, closeExtModal, closeModal, closePicker, closeSparepartModal, closeSparepartPicker, confirmPicker, confirmSparepartPicker, deleteExtUnit, deleteSparepart, deleteUnit, editExtUnit, editUnit, exportExcel, exportExtExcel, exportSparepartExcel, extRender, extSortBy, filterPicker, filterSparepartPicker, handleImportExtFile, handleImportFile, openAddModal, openExtAddModal, openPicker, openSparepartModal, openSparepartPicker, releaseSparepart, render, renderSparepartTable, saveBulk, saveExtBulk, saveExtUnit, saveSparepartBulk, saveUnit, sortBy, switchTab, togglePickerItem, toggleSparepartPickerItem, findByImei, jumpFromDashboard };
+  const svcApp = { addBulkRow, addExtBulkRow, addSparepartBulkRow, closeAddModal, closeExtAddModal, closeExtModal, closeModal, closePicker, closeSparepartModal, closeSparepartPicker, confirmPicker, confirmSparepartPicker, deleteExtUnit, deleteSparepart, deleteUnit, editExtUnit, editUnit, exportExcel, exportExtExcel, exportSparepartExcel, extRender, extSortBy, filterPicker, filterSparepartPicker, handleImportExtFile, handleImportFile, openAddModal, openExtAddModal, openPicker, openSparepartModal, openSparepartPicker, releaseSparepart, render, renderSparepartTable, saveBulk, saveExtBulk, saveExtUnit, saveSparepartBulk, saveUnit, sortBy, switchTab, togglePickerItem, toggleSparepartPickerItem, findByImei, jumpFromDashboard, getSummary };
   window.svcApp = svcApp;
 
 const statusLabel = {
@@ -754,6 +754,20 @@ function extRenderStats() {
   `).join('');
 }
 
+// Dipakai tab "Dashboard Utama" di dashboard.js buat rangkuman lintas-panel. `units`/`externalUnits`
+// ada di dalam closure IIFE ini (bukan variabel global), jadi harus diekspos lewat svcApp.
+function getSummary(){
+  return {
+    internalTotal: units.length,
+    internalQueue: units.filter(u => u.status === 'queue').length,
+    internalProgress: units.filter(u => u.status === 'progress').length,
+    internalDone: units.filter(u => u.status === 'done').length,
+    externalTotal: externalUnits.length,
+    externalProcess: externalUnits.filter(u => u.status === 'process').length,
+    externalDone: externalUnits.filter(u => u.status === 'done').length,
+  };
+}
+
 function extRender() {
   extRenderStats();
   const search = document.getElementById('svc_extSearch').value.toLowerCase();
@@ -1415,6 +1429,7 @@ async function bootstrapService(){
     nextExtIdNum = computeNextIdNum(externalUnits);
   } catch (e) { /* biarkan kosong kalau API belum siap */ }
   svcApp.render();
+  window.renderDashboardUtama?.();
 }
 bootstrapService();
 
