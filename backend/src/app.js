@@ -34,6 +34,7 @@ app.use('/api/units', require('./routes/units.routes'));
 app.use('/api/dusbox', require('./routes/dusbox.routes'));
 app.use('/api/aksesoris', require('./routes/aksesoris.routes'));
 app.use('/api/sparepart', require('./routes/sparepart.routes'));
+app.use('/api/stock-transaksi', require('./routes/stockTransaksi.routes'));
 app.use('/api/retur-klaim', require('./routes/returKlaim.routes'));
 app.use('/api/purchase-orders', require('./routes/purchaseOrders.routes'));
 app.use('/api/customers', require('./routes/customers.routes'));

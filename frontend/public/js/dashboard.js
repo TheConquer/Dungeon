@@ -93,6 +93,28 @@ function nextRkId(tipe){
 }
 function saveReturKlaimData(){ savePersisted(PERSIST_KEYS.returklaim, returKlaimData); }
 
+// ---------- Transaksi Item (keluar-masuk & pindah cabang Dusbox/Aksesoris/Sparepart) ----------
+// BEDA dari dataset lain di atas: ini TIDAK lewat savePersisted/bulk-replace, karena setiap
+// transaksi punya efek samping ke tabel item terkait (qty bertambah/berkurang, atau branch_id
+// pindah) yang dihitung di SERVER (termasuk validasi "stok tidak cukup"). Bulk-replace array ini
+// begitu saja tidak akan menjalankan efek sampingnya, jadi qty item bisa nyimpang dari riwayat.
+// Makanya setiap create/delete transaksi manggil endpoint langsung, lalu re-fetch data kategori
+// terkait supaya array in-memory (dusboxData dkk, dipakai closure lain) ikut ter-update.
+let stockTransaksiData = [];
+const STOKTRX_CATEGORY_ARR = { Dusbox: ()=>dusboxData, Aksesoris: ()=>aksesorisData, Sparepart: ()=>sparepartData };
+const STOKTRX_CATEGORY_ENDPOINT = { Dusbox: PERSIST_ENDPOINTS[PERSIST_KEYS.dusbox], Aksesoris: PERSIST_ENDPOINTS[PERSIST_KEYS.aksesoris], Sparepart: PERSIST_ENDPOINTS[PERSIST_KEYS.sparepart] };
+async function loadStockTransaksiData(){
+  const rows = await fetchArray('/api/stock-transaksi');
+  stockTransaksiData.length = 0;
+  stockTransaksiData.push(...rows);
+}
+async function refreshStockCategoryData(kategori){
+  const arr = STOKTRX_CATEGORY_ARR[kategori]();
+  const rows = await fetchArray(STOKTRX_CATEGORY_ENDPOINT[kategori]);
+  arr.length = 0;
+  arr.push(...rows);
+}
+
 const fmtRp = n => 'Rp' + n.toLocaleString('id-ID');
 document.getElementById('todayBadge').textContent = 'Update: ' + new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
 
@@ -1708,7 +1730,7 @@ function renderDusboxTable(){
   document.getElementById('dusboxResultCount').textContent = `Menampilkan ${rows.length} dari ${dusboxData.length} SKU`;
   document.getElementById('dusboxTableCount').textContent = `(${dusboxData.length} SKU total)`;
   document.getElementById('dusboxTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStockModal('dusbox','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('dusbox','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
+    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Dusbox','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('dusbox','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('dusbox','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
 }
 ['dusboxSearch','dusboxFModel','dusboxFKondisi','dusboxFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderDusboxTable));
 
@@ -1729,7 +1751,7 @@ function renderAksesorisTable(){
   document.getElementById('aksesorisResultCount').textContent = `Menampilkan ${rows.length} dari ${aksesorisData.length} SKU`;
   document.getElementById('aksesorisTableCount').textContent = `(${aksesorisData.length} SKU total)`;
   document.getElementById('aksesorisTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStockModal('aksesoris','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('aksesoris','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
+    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Aksesoris','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('aksesoris','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('aksesoris','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
 }
 ['aksesorisSearch','aksesorisFJenis','aksesorisFGudang','aksesorisFSupplier'].forEach(id=>document.getElementById(id).addEventListener('input', renderAksesorisTable));
 
@@ -1750,7 +1772,7 @@ function renderSparepartTable(){
   document.getElementById('sparepartResultCount').textContent = `Menampilkan ${rows.length} dari ${sparepartData.length} SKU`;
   document.getElementById('sparepartTableCount').textContent = `(${sparepartData.length} SKU total)`;
   document.getElementById('sparepartTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStockModal('sparepart','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('sparepart','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
+    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.kondisi}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Sparepart','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('sparepart','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('sparepart','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
 }
 ['sparepartSearch','sparepartFJenis','sparepartFKondisi','sparepartFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderSparepartTable));
 
@@ -1872,6 +1894,175 @@ function deleteStockConfirm(category, id){
   renderEverything();
 }
 window.deleteStockConfirm = deleteStockConfirm;
+
+// ---------- Transaksi Item (Dusbox/Aksesoris/Sparepart: Masuk/Keluar/Pindah Cabang) ----------
+const STOKTRX_TUJUAN_OPTIONS = {
+  Masuk: ['Pembelian dari Supplier (Restock)', 'Retur dari Customer/Servis', 'Lainnya'],
+  Keluar: ['Terjual ke Customer', 'Dipakai untuk Servis Unit', 'Retur ke Supplier', 'Lainnya'],
+};
+
+function populateStoktrxCabangList(){
+  const allStock = [...dusboxData, ...aksesorisData, ...sparepartData];
+  const gudangs = [...new Set(allStock.map(d=>d.gudang))].filter(Boolean).sort();
+  document.getElementById('stoktrxCabangList').innerHTML = gudangs.map(g=>`<option value="${g}">`).join('');
+}
+
+function populateStoktrxSkuOptions(){
+  const cfg = STOCK_CATEGORY_CONFIG[document.getElementById('stoktrxFKategoriForm').value.toLowerCase()];
+  const arr = cfg ? cfg.getArr() : [];
+  const sel = document.getElementById('stoktrxFSku');
+  sel.innerHTML = arr.map(d=>`<option value="${d.sku_id}">${d.sku_id} — ${d.jenis}${d.kompatibel_model ? ' ('+d.kompatibel_model+')' : ''}</option>`).join('');
+  updateStoktrxSkuInfo();
+}
+
+function updateStoktrxSkuInfo(){
+  const kategori = document.getElementById('stoktrxFKategoriForm').value;
+  const cfg = STOCK_CATEGORY_CONFIG[kategori.toLowerCase()];
+  const skuId = document.getElementById('stoktrxFSku').value;
+  const d = cfg && cfg.getArr().find(x=>x.sku_id===skuId);
+  document.getElementById('stoktrxSkuInfo').textContent = d
+    ? `Stok saat ini: ${d.qty} ${d.satuan} · Lokasi: ${d.gudang}`
+    : '';
+}
+
+function toggleStoktrxTipeFields(){
+  const tipe = document.getElementById('stoktrxFTipeForm').value;
+  const isPindah = tipe === 'Pindah Cabang';
+  document.getElementById('stoktrxQtyTujuanWrap').style.display = isPindah ? 'none' : 'flex';
+  document.getElementById('stoktrxCabangWrap').style.display = isPindah ? 'block' : 'none';
+  if(!isPindah){
+    const tujuanSel = document.getElementById('stoktrxFTujuan');
+    tujuanSel.innerHTML = STOKTRX_TUJUAN_OPTIONS[tipe].map(t=>`<option value="${t}">${t}</option>`).join('');
+  }
+}
+
+document.getElementById('stoktrxFKategoriForm').addEventListener('change', populateStoktrxSkuOptions);
+document.getElementById('stoktrxFSku').addEventListener('change', updateStoktrxSkuInfo);
+document.getElementById('stoktrxFTipeForm').addEventListener('change', toggleStoktrxTipeFields);
+
+function openStokTrxModal(prefillKategori, prefillSku){
+  populateStoktrxCabangList();
+  document.getElementById('stoktrxFKategoriForm').value = prefillKategori || 'Dusbox';
+  populateStoktrxSkuOptions();
+  if(prefillSku) document.getElementById('stoktrxFSku').value = prefillSku;
+  updateStoktrxSkuInfo();
+  document.getElementById('stoktrxFTipeForm').value = 'Masuk';
+  toggleStoktrxTipeFields();
+  document.getElementById('stoktrxFTanggal').value = REF_TODAY_STR;
+  document.getElementById('stoktrxFQty').value = '';
+  document.getElementById('stoktrxFCabangTujuan').value = '';
+  document.getElementById('stoktrxFKeterangan').value = '';
+  document.getElementById('stoktrxModalOverlay').classList.add('open');
+}
+window.openStokTrxModal = openStokTrxModal;
+
+function closeStokTrxModal(){
+  document.getElementById('stoktrxModalOverlay').classList.remove('open');
+}
+window.closeStokTrxModal = closeStokTrxModal;
+
+async function saveStokTrxForm(){
+  const kategori = document.getElementById('stoktrxFKategoriForm').value;
+  const skuId = document.getElementById('stoktrxFSku').value;
+  const tipe = document.getElementById('stoktrxFTipeForm').value;
+  const tanggal = document.getElementById('stoktrxFTanggal').value;
+  const keterangan = document.getElementById('stoktrxFKeterangan').value.trim();
+
+  if(!skuId){ alert('Pilih SKU / item dulu.'); return; }
+  if(!tanggal){ alert('Tanggal wajib diisi.'); return; }
+
+  const payload = { kategori, sku_id: skuId, tipe, tanggal, keterangan };
+  if(tipe === 'Pindah Cabang'){
+    const cabangTujuan = document.getElementById('stoktrxFCabangTujuan').value.trim();
+    if(!cabangTujuan){ alert('Cabang tujuan wajib diisi.'); return; }
+    payload.cabang_tujuan = cabangTujuan;
+  }else{
+    const qty = parseInt(document.getElementById('stoktrxFQty').value, 10);
+    if(!qty || qty <= 0){ alert('Qty harus lebih dari 0.'); return; }
+    payload.qty = qty;
+    payload.tujuan = document.getElementById('stoktrxFTujuan').value;
+  }
+
+  try{
+    const res = await fetch('/api/stock-transaksi', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      throw new Error(body.error || `Server menolak (status ${res.status})`);
+    }
+    await loadStockTransaksiData();
+    await refreshStockCategoryData(kategori);
+    closeStokTrxModal();
+    renderEverything();
+  }catch(err){
+    alert('⚠️ Gagal menyimpan transaksi: ' + err.message);
+  }
+}
+window.saveStokTrxForm = saveStokTrxForm;
+
+async function deleteStokTrxConfirm(id){
+  const trx = stockTransaksiData.find(t=>t.id===id);
+  if(!trx) return;
+  if(!confirm(`Hapus transaksi ${id}? Efeknya ke qty/lokasi item akan dibalik (dikembalikan seperti sebelum transaksi ini dicatat).`)) return;
+  try{
+    const res = await fetch(`/api/stock-transaksi/${id}`, { method:'DELETE' });
+    if(!res.ok){
+      const body = await res.json().catch(()=>({}));
+      throw new Error(body.error || `Server menolak (status ${res.status})`);
+    }
+    await loadStockTransaksiData();
+    await refreshStockCategoryData(trx.kategori);
+    renderEverything();
+  }catch(err){
+    alert('⚠️ Gagal menghapus transaksi: ' + err.message);
+  }
+}
+window.deleteStokTrxConfirm = deleteStokTrxConfirm;
+
+function renderStokTrxKpi(){
+  const totalMasuk = stockTransaksiData.filter(t=>t.tipe==='Masuk').reduce((a,t)=>a+t.qty,0);
+  const totalKeluar = stockTransaksiData.filter(t=>t.tipe==='Keluar').reduce((a,t)=>a+t.qty,0);
+  const totalPindah = stockTransaksiData.filter(t=>t.tipe==='Pindah Cabang').length;
+  const cards = [
+    {label:'Total Transaksi', value:stockTransaksiData.length, sub:'seluruh riwayat', cls:'c-blue'},
+    {label:'Total Masuk', value:totalMasuk, sub:'akumulasi qty masuk', cls:'c-green'},
+    {label:'Total Keluar', value:totalKeluar, sub:'akumulasi qty keluar', cls:'c-red'},
+    {label:'Pindah Cabang', value:totalPindah, sub:'perpindahan lokasi item', cls:'c-purple'},
+  ];
+  document.getElementById('stoktrxKpiGrid').innerHTML = cards.map(c=>`
+    <div class="kpi ${c.cls}">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+function renderStokTrxTable(){
+  const search = document.getElementById('stoktrxSearch').value.toLowerCase();
+  const fKategori = document.getElementById('stoktrxFKategori').value;
+  const fTipe = document.getElementById('stoktrxFTipe').value;
+  let rows = stockTransaksiData.filter(t=>{
+    if(fKategori && t.kategori!==fKategori) return false;
+    if(fTipe && t.tipe!==fTipe) return false;
+    if(search && !`${t.sku_id} ${t.nama_item} ${t.keterangan||''}`.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  document.getElementById('stoktrxResultCount').textContent = `Menampilkan ${rows.length} dari ${stockTransaksiData.length} transaksi`;
+  document.getElementById('stoktrxTableCount').textContent = `(${stockTransaksiData.length} transaksi total)`;
+  const tipeCls = { Masuk:'qc-lolos', Keluar:'qc-gagal', 'Pindah Cabang':'qc-pending' };
+  document.getElementById('stoktrxTbody').innerHTML = rows.map(t=>{
+    const lokasi = t.tipe==='Pindah Cabang' ? `${t.cabang_asal||'-'} → ${t.cabang_tujuan||'-'}` : (t.cabang_asal||'-');
+    return `
+    <tr>
+      <td>${t.tanggal}</td><td>${t.kategori}</td><td>${t.sku_id}</td><td>${t.nama_item||'-'}</td>
+      <td><span class="${tipeCls[t.tipe]}">${t.tipe}</span></td>
+      <td>${t.qty}</td><td>${t.tujuan||'-'}</td><td>${lokasi}</td><td>${t.keterangan||'-'}</td>
+      <td><div class="row-actions"><button type="button" class="del" onclick="deleteStokTrxConfirm('${t.id}')">Hapus</button></div></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="10" style="color:var(--muted);text-align:center;">Belum ada transaksi tercatat.</td></tr>';
+}
+['stoktrxSearch','stoktrxFKategori','stoktrxFTipe'].forEach(id=>document.getElementById(id).addEventListener('input', renderStokTrxTable));
 
 // ---------- Retur & Klaim ----------
 function renderRkKpi(){
@@ -2629,6 +2820,9 @@ function renderEverything(){
   renderSparepartTable();
   renderCategoryTransfer('sparepartTransferList','sparepartTransferCount', sparepartData);
 
+  renderStokTrxKpi();
+  renderStokTrxTable();
+
   renderRkKpi();
   renderRkCharts();
   populateRkFilters();
@@ -2733,6 +2927,7 @@ async function bootstrapDashboard(){
     arr.length = 0;
     arr.push(...rows);
   }));
+  await loadStockTransaksiData();
   renderEverything();
 }
 bootstrapDashboard();

@@ -79,6 +79,17 @@ function makeStockItemModel(table, idPrefix, padLength, defaultReorderPoint) {
     return getById(skuId);
   }
 
+  // Dipakai transaksi "Pindah Cabang": item ini tidak di-split per cabang (satu SKU = satu
+  // lokasi), jadi pindah cabang cuma mengganti branch_id, qty tidak berubah sama sekali.
+  async function setBranch(skuId, branchId, client = pool) {
+    if (!skuId) return null;
+    await client.query(
+      `UPDATE ${table} SET branch_id = $2, tanggal_update = CURRENT_DATE WHERE sku_id = $1`,
+      [skuId, branchId]
+    );
+    return getById(skuId);
+  }
+
   async function findLinkedSku(nama, kompatibel, client = pool) {
     // meniru findLinkedSparepartSku: cari SKU yang jenis-nya mengandung nama part & cocok model
     const { rows } = await client.query(
@@ -136,7 +147,7 @@ function makeStockItemModel(table, idPrefix, padLength, defaultReorderPoint) {
     }).then(list);
   }
 
-  return { list, getById, create, update, remove, adjustQty, findLinkedSku, findOrCreateAndIncrement, bulkReplace };
+  return { list, getById, create, update, remove, adjustQty, setBranch, findLinkedSku, findOrCreateAndIncrement, bulkReplace };
 }
 
 module.exports = { makeStockItemModel };

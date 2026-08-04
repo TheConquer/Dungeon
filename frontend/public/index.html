@@ -37,6 +37,7 @@
     <button class="tab-btn" data-tab="dusbox">📦 Dusbox</button>
     <button class="tab-btn" data-tab="aksesoris">🔌 Aksesoris</button>
     <button class="tab-btn" data-tab="sparepart">🔧 Sparepart</button>
+    <button class="tab-btn" data-tab="stoktrx">🔀 Transaksi Item</button>
     <button class="tab-btn" data-tab="returklaim">🔄 Retur &amp; Klaim</button>
     <button class="tab-btn" data-tab="import">📤 Import Data</button>
     <button class="tab-btn" data-tab="service">🛠️ Unit Service</button>
@@ -446,6 +447,44 @@
       </div>
     </div>
   </div><!-- /tab-sparepart -->
+
+  <div class="tab-content" id="tab-stoktrx" style="display:none;">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>🔀 Ringkasan Transaksi Item</h2>
+      <div class="kpi-grid" id="stoktrxKpiGrid"></div>
+    </div>
+    <div class="panel">
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">Riwayat Transaksi <span class="count" id="stoktrxTableCount"></span></h2>
+        <div class="btn-row" style="margin-bottom:0;">
+          <button class="btn" type="button" onclick="openStokTrxModal()">+ Catat Transaksi</button>
+        </div>
+      </div>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Mencatat Masuk, Keluar, dan Pindah Cabang untuk Dusbox, Aksesoris &amp; Sparepart dalam satu riwayat. Qty di masing-masing panel stok otomatis mengikuti transaksi yang dicatat di sini — jadi lokasi &amp; jumlah item selalu bisa dilacak.</p>
+      <div class="filters">
+        <input type="text" id="stoktrxSearch" placeholder="Cari SKU, item, keterangan...">
+        <select id="stoktrxFKategori">
+          <option value="">Semua Kategori</option>
+          <option value="Dusbox">Dusbox</option>
+          <option value="Aksesoris">Aksesoris</option>
+          <option value="Sparepart">Sparepart</option>
+        </select>
+        <select id="stoktrxFTipe">
+          <option value="">Semua Tipe</option>
+          <option value="Masuk">Masuk</option>
+          <option value="Keluar">Keluar</option>
+          <option value="Pindah Cabang">Pindah Cabang</option>
+        </select>
+      </div>
+      <div class="result-count" id="stoktrxResultCount"></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Kategori</th><th>SKU</th><th>Item</th><th>Tipe</th><th>Qty</th><th>Tujuan / Sumber</th><th>Lokasi</th><th>Keterangan</th><th>Aksi</th></tr></thead>
+          <tbody id="stoktrxTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /tab-stoktrx -->
 
   <div class="tab-content" id="tab-returklaim" style="display:none;">
     <div class="panel" style="margin-bottom:16px;">
@@ -1365,6 +1404,64 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
       <div class="dash-modal-actions">
         <button class="btn btn-outline" type="button" onclick="closeStockModal()">Batal</button>
         <button class="btn" type="button" onclick="saveStockForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-modal-overlay" id="stoktrxModalOverlay">
+    <div class="dash-modal">
+      <h2>Catat Transaksi Item</h2>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Kategori</label>
+          <select id="stoktrxFKategoriForm">
+            <option value="Dusbox">Dusbox</option>
+            <option value="Aksesoris">Aksesoris</option>
+            <option value="Sparepart">Sparepart</option>
+          </select>
+        </div>
+        <div class="dash-field">
+          <label>SKU / Item</label>
+          <select id="stoktrxFSku"></select>
+        </div>
+      </div>
+      <div id="stoktrxSkuInfo" style="font-size:11px;color:var(--muted);margin:-8px 0 12px;"></div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Tipe Transaksi</label>
+          <select id="stoktrxFTipeForm">
+            <option value="Masuk">Masuk</option>
+            <option value="Keluar">Keluar</option>
+            <option value="Pindah Cabang">Pindah Cabang</option>
+          </select>
+        </div>
+        <div class="dash-field">
+          <label>Tanggal</label>
+          <input type="date" id="stoktrxFTanggal">
+        </div>
+      </div>
+      <div id="stoktrxQtyTujuanWrap" class="dash-field-row">
+        <div class="dash-field">
+          <label>Qty</label>
+          <input type="number" id="stoktrxFQty" min="1" step="1">
+        </div>
+        <div class="dash-field">
+          <label>Tujuan / Sumber</label>
+          <select id="stoktrxFTujuan"></select>
+        </div>
+      </div>
+      <div id="stoktrxCabangWrap" class="dash-field" style="display:none;">
+        <label>Cabang Tujuan</label>
+        <input type="text" id="stoktrxFCabangTujuan" list="stoktrxCabangList" placeholder="Nama cabang tujuan">
+        <datalist id="stoktrxCabangList"></datalist>
+      </div>
+      <div class="dash-field">
+        <label>Keterangan <span style="color:var(--muted);font-weight:400;">(nama customer, IMEI unit, dst)</span></label>
+        <input type="text" id="stoktrxFKeterangan" placeholder="-">
+      </div>
+      <div class="dash-modal-actions">
+        <button class="btn btn-outline" type="button" onclick="closeStokTrxModal()">Batal</button>
+        <button class="btn" type="button" onclick="saveStokTrxForm()">Simpan</button>
       </div>
     </div>
   </div>

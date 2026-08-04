@@ -103,6 +103,27 @@ CREATE TABLE IF NOT EXISTS sparepart_items (
 );
 CREATE INDEX IF NOT EXISTS idx_sparepart_branch ON sparepart_items(branch_id);
 
+-- Riwayat keluar-masuk (dan pindah cabang) untuk Dusbox/Aksesoris/Sparepart. Qty di tabel
+-- item ({dusbox,aksesoris,sparepart}_items) SELALU mengikuti transaksi di sini (satu sumber
+-- kebenaran) — Masuk menambah qty, Keluar mengurangi, Pindah Cabang cuma memindah branch_id
+-- tanpa mengubah qty (item tidak di-split per cabang, cuma ada di satu lokasi pada satu waktu).
+CREATE TABLE IF NOT EXISTS stock_transactions (
+  id TEXT PRIMARY KEY,
+  kategori TEXT NOT NULL CHECK (kategori IN ('Dusbox','Aksesoris','Sparepart')),
+  sku_id TEXT NOT NULL,
+  nama_item TEXT,
+  tipe TEXT NOT NULL CHECK (tipe IN ('Masuk','Keluar','Pindah Cabang')),
+  qty INT NOT NULL DEFAULT 0,
+  tujuan TEXT,
+  cabang_asal_id INT REFERENCES branches(id),
+  cabang_tujuan_id INT REFERENCES branches(id),
+  keterangan TEXT,
+  tanggal DATE NOT NULL,
+  dibuat_pada TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_stocktrx_sku ON stock_transactions(sku_id);
+CREATE INDEX IF NOT EXISTS idx_stocktrx_kategori ON stock_transactions(kategori);
+
 CREATE TABLE IF NOT EXISTS retur_klaim (
   id TEXT PRIMARY KEY,
   tipe TEXT NOT NULL CHECK (tipe IN ('Retur Cabang','Retur ke Supplier')),

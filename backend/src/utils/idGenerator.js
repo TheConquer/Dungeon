@@ -41,4 +41,5 @@ module.exports = {
   nextServiceUnitId: (client) => nextId(client, 'service_units', 'id', 'SVC-', 3, 0),
   nextServiceSparepartId: (client) => nextId(client, 'service_spareparts', 'id', 'SP-', 6, 0),
   nextExternalUnitId: (client) => nextId(client, 'service_units_external', 'id', 'EXT-', 3, 0),
+  nextStockTrxId: (client) => nextId(client, 'stock_transactions', 'id', 'TRX-', 4, 0),
 };

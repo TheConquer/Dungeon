@@ -16,6 +16,7 @@ const serviceUnit = require('./serviceUnit.model');
 const serviceSparepart = require('./serviceSparepart.model');
 const serviceExternal = require('./serviceExternal.model');
 const stickerItem = require('./stickerItem.model');
+const stockTransaksi = require('./stockTransaksi.model');
 
 const KEYS = {
   unit: 'dash_inventoryData_v1',
@@ -30,16 +31,19 @@ const KEYS = {
   svc_sparepart: 'sparepart_inventory_iphone_v1',
   svc_external: 'external_service_iphone_v1',
   stiker: 'stikerImeiData_v1',
+  stoktrx: 'dash_stockTransaksiData_v1',
 };
 
 async function buildBackupObject() {
   const [
     unitRows, dusboxRows, aksesorisRows, sparepartRows, returklaimRows,
     poRows, customerRows, requestRows, svcUnitRows, svcSparepartRows, svcExternalRows, stickerRows,
+    stoktrxRows,
   ] = await Promise.all([
     units.list(), dusbox.list(), aksesoris.list(), sparepart.list(), returKlaim.list(),
     purchaseOrder.list(), customer.list(), branchRequest.list(),
     serviceUnit.list(), serviceSparepart.list(), serviceExternal.list(), stickerItem.list(),
+    stockTransaksi.list(),
   ]);
 
   // Model service_units/service_spareparts/sticker_items sudah meng-alias kolomnya persis
@@ -64,6 +68,7 @@ async function buildBackupObject() {
     [KEYS.svc_sparepart]: svcSpareparts,
     [KEYS.svc_external]: svcExternalRows,
     [KEYS.stiker]: { items: stickerRows, idCounter: maxStickerId + 1 },
+    [KEYS.stoktrx]: stoktrxRows,
   };
 }
 
@@ -78,6 +83,7 @@ async function restoreFromBackup(data) {
 
   await withTransaction(async (client) => {
     // Hapus dulu (urutan: anak sebelum induk untuk FK)
+    await client.query('DELETE FROM stock_transactions');
     await client.query('DELETE FROM service_spareparts');
     await client.query('DELETE FROM service_units');
     await client.query('DELETE FROM service_units_external');
@@ -249,6 +255,26 @@ async function restoreFromBackup(data) {
       await client.query(
         `SELECT setval(pg_get_serial_sequence('sticker_items','id'), COALESCE((SELECT MAX(id) FROM sticker_items), 0) + 1, false)`
       );
+      restoredKeys++;
+    }
+
+    // Insert langsung apa adanya (bukan lewat stockTransaksi.create), TANPA menjalankan efek
+    // sampingnya (adjust qty/branch_id lagi) — qty/branch item di atas sudah dipulihkan ke
+    // kondisi historisnya sendiri lewat restoreStockTable, jadi menjalankan efek sampingnya
+    // lagi di sini justru akan menghitung dobel.
+    if (Array.isArray(data[KEYS.stoktrx])) {
+      for (const r of data[KEYS.stoktrx]) {
+        const cabangAsalId = r.cabang_asal ? await resolveBranchId(client, r.cabang_asal) : null;
+        const cabangTujuanId = r.cabang_tujuan ? await resolveBranchId(client, r.cabang_tujuan) : null;
+        await client.query(
+          `INSERT INTO stock_transactions (id, kategori, sku_id, nama_item, tipe, qty, tujuan, cabang_asal_id, cabang_tujuan_id, keterangan, tanggal)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+          [
+            r.id, r.kategori, r.sku_id, r.nama_item || null, r.tipe, r.qty || 0, r.tujuan || null,
+            cabangAsalId, cabangTujuanId, r.keterangan || null, r.tanggal,
+          ]
+        );
+      }
       restoredKeys++;
     }
   });
