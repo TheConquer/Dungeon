@@ -2762,6 +2762,15 @@ function buildImportUI(){
         <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:2px;">🔄 Sync Harian (update data fisik unit dari file, TANPA menghapus unit lain & TANPA mengubah status/Report QC/Tanggal Terjual yang sudah tercatat di aplikasi)</label>
         <input type="file" accept=".csv,.xlsx,.xls" data-upload-sync="unit">
         <div class="imp-status" id="impStatus-unit-sync"></div>
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);">
+        <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:2px;">💰 Import Unit Terjual (tandai unit yang sudah ada jadi Terjual dari file, TANPA mengubah data fisik unit lain)</label>
+        <div class="imp-sub">Kolom: imei, tanggal_terjual, harga_jual</div>
+        <div class="btn-row" style="margin-bottom:6px;">
+          <button class="btn btn-outline" type="button" id="btnDownloadSoldTemplate">⬇ Download Template (CSV)</button>
+        </div>
+        <input type="file" accept=".csv,.xlsx,.xls" data-upload-sold="unit">
+        <div class="imp-status" id="impStatus-unit-sold"></div>
       </div>` : ''}
     </div>`).join('');
 
@@ -2829,6 +2838,59 @@ function buildImportUI(){
         }catch(err){
           statusEl.className = 'imp-status err';
           statusEl.textContent = `✗ Gagal sync: ${err.message}`;
+        }finally{
+          e.target.value = '';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // Import "Unit Terjual" — file harian yang isinya cuma unit yang laku (IMEI, tanggal jual,
+  // harga jual). Cuma menandai unit yang SUDAH ADA jadi Terjual, tidak pernah bikin unit baru
+  // dan tidak menyentuh field fisik lain. Lihat catatan lengkap di units.model.js.
+  const soldTemplateBtn = document.getElementById('btnDownloadSoldTemplate');
+  if(soldTemplateBtn){
+    soldTemplateBtn.addEventListener('click', ()=>{
+      const columns = [
+        {key:'imei', label:'imei'}, {key:'tanggal_terjual', label:'tanggal_terjual'}, {key:'harga_jual', label:'harga_jual'},
+      ];
+      const example = {imei:'351234567890123', tanggal_terjual:REF_TODAY_STR, harga_jual:15000000};
+      downloadCSV(toCSV([example], columns), 'template_unit_terjual.csv');
+    });
+  }
+  const soldInput = document.querySelector('[data-upload-sold="unit"]');
+  if(soldInput){
+    soldInput.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const statusEl = document.getElementById('impStatus-unit-sold');
+      const reader = new FileReader();
+      reader.onload = async (ev)=>{
+        try{
+          const data = new Uint8Array(ev.target.result);
+          const wb = XLSX.read(data, {type:'array'});
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+          if(!rows.length) throw new Error('File kosong atau format tidak terbaca.');
+          const transformed = rows.map(r=>({
+            imei: String(r.imei||'').trim(),
+            tanggal_terjual: r.tanggal_terjual || '',
+            harga_jual: Number(r.harga_jual) || 0,
+          }));
+          const res = await fetch('/api/units/mark-sold', {
+            method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows: transformed })
+          });
+          const result = await res.json();
+          if(!res.ok) throw new Error(result.error || 'Gagal impor.');
+          inventoryData.length = 0;
+          inventoryData.push(...result.rows);
+          renderEverything();
+          statusEl.className = 'imp-status ok';
+          statusEl.textContent = `✓ ${result.updated} unit ditandai Terjual` + (result.notFound ? `, ${result.notFound} IMEI tidak ditemukan di database` : '') + (result.skipped ? `, ${result.skipped} baris dilewati (IMEI tidak valid)` : '') + `.`;
+        }catch(err){
+          statusEl.className = 'imp-status err';
+          statusEl.textContent = `✗ Gagal impor: ${err.message}`;
         }finally{
           e.target.value = '';
         }

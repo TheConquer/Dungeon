@@ -18,6 +18,13 @@ router.post('/sync', asyncHandler(async (req, res) => {
   res.json(await model.syncFromFile(rows));
 }));
 
+// Import "Unit Terjual": tandai unit yang sudah ada jadi Terjual dari file. Lihat catatan
+// di units.model.js — tidak pernah membuat unit baru.
+router.post('/mark-sold', asyncHandler(async (req, res) => {
+  const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+  res.json(await model.markSoldFromFile(rows));
+}));
+
 router.use('/', makeCrudRouterWithImport(model, { notFoundMsg: 'Unit tidak ditemukan' }));
 
 module.exports = router;

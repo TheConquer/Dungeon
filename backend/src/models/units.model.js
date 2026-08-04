@@ -146,4 +146,31 @@ async function syncFromFile(rows) {
   }).then(async (counts) => ({ ...counts, rows: await list() }));
 }
 
-module.exports = { list, getById, getByImei, create, update, remove, bulkReplace, syncFromFile };
+// Import "Unit Terjual" — file harian dari kasir/toko yang isinya HANYA unit yang laku hari itu
+// (IMEI, tanggal jual, harga jual). Beda dari syncFromFile: ini TIDAK pernah membuat unit baru
+// (menjual unit yang belum tercatat tidak masuk akal) dan TIDAK menyentuh field fisik lain
+// (model/warna/kapasitas/supplier/gudang) — cuma menandai status jadi Terjual + isi tanggal &
+// harga jual. IMEI yang tidak ketemu di database dihitung notFound, bukan otomatis dibuat.
+async function markSoldFromFile(rows) {
+  return withTransaction(async (client) => {
+    let updated = 0;
+    let notFound = 0;
+    let skipped = 0;
+    for (const r of rows) {
+      const imei = String(r.imei || '').trim();
+      if (!/^\d{15}$/.test(imei)) { skipped++; continue; }
+      const { rows: existing } = await client.query('SELECT harga_jual FROM units WHERE imei = $1', [imei]);
+      if (!existing.length) { notFound++; continue; }
+      const hargaJual = Number(r.harga_jual) || existing[0].harga_jual;
+      const tanggalTerjual = r.tanggal_terjual || new Date().toISOString().slice(0, 10);
+      await client.query(
+        `UPDATE units SET status='Terjual', tanggal_terjual=$2, harga_jual=$3 WHERE imei=$1`,
+        [imei, tanggalTerjual, hargaJual]
+      );
+      updated++;
+    }
+    return { updated, notFound, skipped };
+  }).then(async (counts) => ({ ...counts, rows: await list() }));
+}
+
+module.exports = { list, getById, getByImei, create, update, remove, bulkReplace, syncFromFile, markSoldFromFile };
