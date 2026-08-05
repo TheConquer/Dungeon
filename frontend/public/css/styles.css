@@ -19,7 +19,7 @@
     background-attachment:fixed;
     color:var(--text);
   }
-  .wrap{max-width:1400px;margin:0 auto;padding:24px;}
+  .wrap{max-width:1900px;margin:0 auto;padding:24px;}
   header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:20px;}
   header h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em;}
   header p{margin:4px 0 0;color:var(--muted);font-size:13px;}
@@ -115,6 +115,17 @@
   .row-actions button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 9px;border-radius:7px;font-size:11px;cursor:pointer;transition:color .2s var(--ease),border-color .2s var(--ease);}
   .row-actions button:hover{color:var(--text);border-color:var(--accent);}
   .row-actions button.del:hover{color:#f87171;border-color:#f87171;}
+
+  /* Inline-edit: kolom tabel yang bisa langsung diketik di tempat, tanpa buka modal Edit satu-satu */
+  .inline-edit{background:transparent;border:1px solid transparent;border-radius:6px;padding:4px 6px;font-size:12px;color:var(--text);width:100%;min-width:64px;box-sizing:border-box;font-family:inherit;}
+  .inline-edit:hover{border-color:var(--border);}
+  .inline-edit:focus{border-color:var(--accent);background:var(--panel2);outline:none;box-shadow:0 0 0 2px rgba(59,130,246,.15);}
+  select.inline-edit{cursor:pointer;}
+  tr.row-dirty{background:rgba(245,158,11,.07);box-shadow:inset 3px 0 0 var(--warn);}
+  .save-bar{display:none;align-items:center;justify-content:space-between;gap:10px;position:sticky;bottom:0;background:var(--panel2);border:1px solid var(--accent);padding:10px 14px;margin-top:10px;border-radius:var(--radius);box-shadow:0 -4px 16px rgba(0,0,0,.25);z-index:5;}
+  .save-bar.show{display:flex;}
+  .save-bar .save-bar-msg{font-size:12px;color:var(--text);font-weight:600;}
+  .save-bar .save-bar-msg b{color:var(--warn);}
 
   .notif-item{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;font-size:12px;transition:transform .2s var(--ease),box-shadow .2s var(--ease);}
   .notif-item:hover{transform:translateX(2px);box-shadow:var(--glow-sm);}
@@ -249,7 +260,7 @@
   --mid-bg: rgba(245,158,11,.15); --mid-text: #fbbf24;
   --low-bg: rgba(34,197,94,.15); --low-text: #4ade80;
 }
-#svcRoot * { box-sizing: border-box; }#svcRoot .wrap { max-width: 1300px; margin: 0 auto; padding: 24px 20px 60px; }#svcRoot header.top {
+#svcRoot * { box-sizing: border-box; }#svcRoot .wrap { max-width: 1900px; margin: 0 auto; padding: 24px 20px 60px; }#svcRoot header.top {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
   }#svcRoot header.top h1 { font-size: 20px; font-weight: 600; margin: 0; }#svcRoot header.top p { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }#svcRoot .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }#svcRoot .btn {

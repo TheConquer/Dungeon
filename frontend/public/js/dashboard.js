@@ -118,6 +118,97 @@ async function refreshStockCategoryData(kategori){
 const fmtRp = n => 'Rp' + n.toLocaleString('id-ID');
 document.getElementById('todayBadge').textContent = 'Update: ' + new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
 
+// ---------- Inline-edit tabel (shared) ----------
+// Dipakai di 6 tabel (Data Unit, Dusbox, Aksesoris, Sparepart, Retur & Klaim, Purchase Order):
+// kolom yang sudah tampil di tabel bisa langsung diketik di situ juga (tanpa buka modal Edit),
+// perubahan disimpan sementara di array in-memory yang sama dipakai render, lalu di-commit ke
+// database lewat tombol "Simpan Semua Perubahan". SENGAJA TIDAK pakai savePersisted/bulk-replace
+// (yang hapus-lalu-insert-ulang SELURUH dataset) — untuk tabel besar seperti Data Unit (900+ baris)
+// itu artinya nunggu ratusan query cuma buat nyimpan 1-2 baris yang benar-benar berubah. Di sini
+// cuma baris yang dirty yang di-PUT satu-satu (paralel) ke endpoint CRUD generik yang sudah ada.
+const inlineEditDirty = {};
+const INLINE_TABLE_CONFIG = {
+  unit: { endpoint:'/api/units', idField:'id', getArr:()=>inventoryData, renderFn:()=>renderTable() },
+  dusbox: { endpoint:'/api/dusbox', idField:'sku_id', getArr:()=>dusboxData, renderFn:()=>renderDusboxTable() },
+  aksesoris: { endpoint:'/api/aksesoris', idField:'sku_id', getArr:()=>aksesorisData, renderFn:()=>renderAksesorisTable() },
+  sparepart: { endpoint:'/api/sparepart', idField:'sku_id', getArr:()=>sparepartData, renderFn:()=>renderSparepartTable() },
+  rk: { endpoint:'/api/retur-klaim', idField:'id', getArr:()=>returKlaimData, renderFn:()=>renderRkTable() },
+  po: { endpoint:'/api/purchase-orders', idField:'po_id', getArr:()=>purchaseOrders, renderFn:()=>renderPoTable() },
+};
+
+function escAttr(s){
+  return String(s===null||s===undefined ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function markInlineDirty(tableKey, id, trEl){
+  if(!inlineEditDirty[tableKey]) inlineEditDirty[tableKey] = new Set();
+  inlineEditDirty[tableKey].add(id);
+  if(trEl) trEl.classList.add('row-dirty');
+  updateSaveBar(tableKey);
+}
+
+function updateSaveBar(tableKey){
+  const bar = document.getElementById(tableKey+'SaveBar');
+  if(!bar) return;
+  const n = inlineEditDirty[tableKey] ? inlineEditDirty[tableKey].size : 0;
+  bar.classList.toggle('show', n>0);
+  const msgEl = bar.querySelector('.save-bar-msg b');
+  if(msgEl) msgEl.textContent = n;
+}
+
+// wireInlineEdit dipanggil SEKALI per tabel (bukan tiap render) — pakai event delegation di
+// tbody supaya tetap jalan walau innerHTML-nya di-render ulang berkali-kali.
+function wireInlineEdit(tbodyId, tableKey, getArr, idField, parseValue){
+  const tbody = document.getElementById(tbodyId);
+  if(!tbody) return;
+  tbody.addEventListener('change', (e)=>{
+    const input = e.target;
+    if(!input.classList.contains('inline-edit')) return;
+    const tr = input.closest('tr');
+    const id = tr.dataset.id;
+    const field = input.dataset.field;
+    const item = getArr().find(x=>String(x[idField])===id);
+    if(!item) return;
+    item[field] = parseValue ? parseValue(field, input.value) : input.value;
+    markInlineDirty(tableKey, id, tr);
+  });
+}
+
+async function saveAllInline(tableKey){
+  const cfg = INLINE_TABLE_CONFIG[tableKey];
+  const ids = inlineEditDirty[tableKey] ? [...inlineEditDirty[tableKey]] : [];
+  if(!cfg || !ids.length) return;
+  const bar = document.getElementById(tableKey+'SaveBar');
+  const btn = bar ? bar.querySelector('button') : null;
+  if(btn){ btn.disabled = true; btn.textContent = `Menyimpan ${ids.length} baris...`; }
+
+  const arr = cfg.getArr();
+  const failed = [];
+  await Promise.all(ids.map(async (id)=>{
+    const item = arr.find(x=>String(x[cfg.idField])===id);
+    if(!item) return;
+    try{
+      const res = await fetch(`${cfg.endpoint}/${encodeURIComponent(id)}`, {
+        method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(item)
+      });
+      if(!res.ok) throw new Error('status ' + res.status);
+    }catch(err){
+      failed.push(id);
+    }
+  }));
+
+  if(failed.length){
+    alert(`⚠️ Gagal menyimpan ${failed.length} dari ${ids.length} baris. Baris yang gagal tetap ditandai belum tersimpan — coba "Simpan Semua Perubahan" lagi.`);
+    inlineEditDirty[tableKey] = new Set(failed);
+  }else{
+    inlineEditDirty[tableKey] = new Set();
+  }
+  if(btn){ btn.disabled = false; btn.textContent = '💾 Simpan Semua Perubahan'; }
+  updateSaveBar(tableKey);
+  if(cfg.renderFn) cfg.renderFn();
+}
+window.saveAllInline = saveAllInline;
+
 // ---------- Aturan otomatis: unit yang Gagal QC langsung masuk kategori Trouble ----------
 // Terjual dikecualikan (unit yang sudah terjual tidak ditarik balik ke Trouble).
 function effectiveStatus(d){
@@ -465,32 +556,49 @@ function keterkaitanBadges(d){
   return badges.join(' ') || '<span style="color:var(--muted);">-</span>';
 }
 
+const UNIT_STATUS_OPTIONS = ['Ready Stock','Prioritas FIFO','Flash Sale','Trouble','Terjual'];
+const UNIT_REPORTQC_OPTIONS = ['Pending QC','Lolos QC','Gagal QC'];
+function selectOptionsHTML(options, current){
+  return options.map(o=>`<option value="${escAttr(o)}"${o===current?' selected':''}>${o}</option>`).join('');
+}
+
+// IMEI/Tgl Masuk/Hari di gudang sengaja tetap read-only (IMEI dipakai sebagai kunci
+// keterkaitan lintas-panel — Report QC, Unit Service, Retur & Klaim — jadi diedit lewat
+// modal Edit yang penuh konteks, bukan sekali ketik tanpa sadar bisa memutus link itu).
 function renderTable(){
+  populateUnitModalDatalists();
   const rows = getFiltered();
   document.getElementById('resultCount').textContent = `Menampilkan ${rows.length} dari ${inventoryData.length} unit`;
   document.getElementById('tbody').innerHTML = rows.map(d=>{
     const es = effectiveStatus(d);
     const auto = isAutoTrouble(d);
     return `
-    <tr>
+    <tr data-id="${d.id}">
       <td>${d.imei}</td>
-      <td>${d.model}</td>
-      <td>${d.warna}</td>
-      <td>${d.kapasitas}</td>
-      <td>${d.supplier}</td>
-      <td>${d.gudang}</td>
+      <td><input class="inline-edit" data-field="model" list="unitModelList" value="${escAttr(d.model)}"></td>
+      <td><input class="inline-edit" data-field="warna" value="${escAttr(d.warna)}"></td>
+      <td><input class="inline-edit" data-field="kapasitas" value="${escAttr(d.kapasitas)}" style="min-width:56px;"></td>
+      <td><input class="inline-edit" data-field="supplier" list="unitSupplierList" value="${escAttr(d.supplier)}"></td>
+      <td><input class="inline-edit" data-field="gudang" list="unitGudangList" value="${escAttr(d.gudang)}"></td>
       <td>${d.tanggal_masuk}</td>
       <td>${d.hari_di_gudang}</td>
-      <td><span class="pill ${pillClass(es)}">${es}</span>${auto?' <span style="color:var(--muted);font-size:10px;">(auto: Gagal QC)</span>':''}</td>
-      <td><span class="${qcClass(d.report_qc)} link-badge" onclick="jumpToReportQC('${d.imei}')" title="Lihat di Report QC">${normalizeReportQC(d.report_qc)}</span></td>
+      <td>
+        <select class="inline-edit" data-field="status">${selectOptionsHTML(UNIT_STATUS_OPTIONS, d.status)}</select>
+        ${auto?'<div style="color:var(--muted);font-size:10px;">(auto: '+es+')</div>':''}
+      </td>
+      <td><select class="inline-edit" data-field="report_qc">${selectOptionsHTML(UNIT_REPORTQC_OPTIONS, normalizeReportQC(d.report_qc))}</select></td>
       <td>${keterkaitanBadges(d)}</td>
-      <td>${d.catatan}</td>
-      <td>${fmtRp(d.harga_beli)}</td>
-      <td>${fmtRp(d.harga_jual)}</td>
+      <td><input class="inline-edit" data-field="catatan" value="${escAttr(d.catatan)}"></td>
+      <td><input class="inline-edit" type="number" min="0" step="1000" data-field="harga_beli" value="${d.harga_beli}"></td>
+      <td><input class="inline-edit" type="number" min="0" step="1000" data-field="harga_jual" value="${d.harga_jual}"></td>
       <td><div class="row-actions"><button type="button" onclick="openServiceTicketFromUnit('${d.imei}')" title="Buat tiket Unit Service dari unit ini">🛠️ Service</button><button type="button" onclick="openUnitModal('${d.id}')">Edit</button><button type="button" class="del" onclick="deleteUnitConfirm('${d.id}')">Hapus</button></div></td>
     </tr>`;}).join('');
   document.getElementById('tableCount').textContent = `(${inventoryData.length} unit total)`;
 }
+function parseUnitInlineValue(field, val){
+  return (field==='harga_beli' || field==='harga_jual') ? (parseFloat(val)||0) : val;
+}
+wireInlineEdit('tbody', 'unit', ()=>inventoryData, 'id', parseUnitInlineValue);
 
 // ---------- Unit: Tambah/Edit/Hapus (modal) ----------
 function populateUnitModalDatalists(){
@@ -711,6 +819,8 @@ function populatePoFilters(){
   document.getElementById('fPoSupplier').innerHTML = '<option value="">Semua Supplier</option>' + suppliers.map(s=>`<option value="${s}">${s}</option>`).join('');
 }
 
+const PO_KATEGORI_OPTIONS = ['Unit iPhone','Dusbox','Aksesoris','Sparepart'];
+const PO_STATUS_OPTIONS = ['Dalam Perjalanan','Diterima','Terlambat'];
 function renderPoTable(){
   const kategori = document.getElementById('fPoKategori').value;
   const supplier = document.getElementById('fPoSupplier').value;
@@ -726,23 +836,27 @@ function renderPoTable(){
   document.getElementById('poTbody').innerHTML = rows.map(p=>{
     const grandTotal = p.total_nilai + (p.biaya_kirim||0) + (p.biaya_lain||0);
     return `
-    <tr>
+    <tr data-id="${p.po_id}">
       <td>${p.po_id}</td>
-      <td>${p.kategori || 'Unit iPhone'}</td>
-      <td>${p.supplier}</td>
-      <td>${p.model}</td>
-      <td>${p.qty}</td>
-      <td>${p.gudang_tujuan}</td>
-      <td>${p.tanggal_order}</td>
-      <td>${p.estimasi_tiba}</td>
+      <td><select class="inline-edit" data-field="kategori">${selectOptionsHTML(PO_KATEGORI_OPTIONS, p.kategori||'Unit iPhone')}</select></td>
+      <td><input class="inline-edit" data-field="supplier" list="poSupplierList" value="${escAttr(p.supplier)}"></td>
+      <td><input class="inline-edit" data-field="model" list="poModelList" value="${escAttr(p.model)}"></td>
+      <td><input class="inline-edit" type="number" min="1" data-field="qty" value="${p.qty}" style="width:60px;"></td>
+      <td><input class="inline-edit" data-field="gudang_tujuan" list="poGudangList" value="${escAttr(p.gudang_tujuan)}"></td>
+      <td><input class="inline-edit" type="date" data-field="tanggal_order" value="${escAttr(p.tanggal_order)}"></td>
+      <td><input class="inline-edit" type="date" data-field="estimasi_tiba" value="${escAttr(p.estimasi_tiba)}"></td>
       <td>${p.tanggal_diterima || '-'}</td>
       <td>${p.lead_time_aktual!=null ? p.lead_time_aktual+' hari' : '-'}</td>
-      <td><span class="pill ${poPillClass(p.status)}">${p.status}</span></td>
+      <td><select class="inline-edit" data-field="status">${selectOptionsHTML(PO_STATUS_OPTIONS, p.status)}</select></td>
       <td>${fmtRp(grandTotal)}</td>
       <td><div class="row-actions"><button type="button" onclick="openPoModal('${p.po_id}')">Edit</button><button type="button" class="del" onclick="deletePoConfirm('${p.po_id}')">Hapus</button></div></td>
     </tr>`;
   }).join('');
 }
+function parsePoInlineValue(field, val){
+  return field==='qty' ? (parseInt(val,10)||0) : val;
+}
+wireInlineEdit('poTbody', 'po', ()=>purchaseOrders, 'po_id', parsePoInlineValue);
 
 document.getElementById('fPoKategori').addEventListener('input', renderPoTable);
 document.getElementById('fPoSupplier').addEventListener('input', renderPoTable);
@@ -1859,6 +1973,29 @@ function buildCategoryDashboard(cfg){
   return { computeKpi, renderKpiCards, renderChart, renderReorderAlert, populateFilters };
 }
 
+// Row inline-edit dipakai bareng Dusbox/Aksesoris/Sparepart (struktur kolomnya identik).
+// Qty & Cabang SENGAJA tidak inline-edit di sini — dua field itu sudah punya jalur perubahan
+// resmi sendiri (tombol 🔀 -> Transaksi Item) yang mencatat riwayat Masuk/Keluar/Pindah Cabang;
+// kalau boleh diketik langsung di tabel, riwayat itu jadi bisa dilewati dan qty/lokasi bisa
+// menyimpang dari catatan transaksinya.
+function stockInlineRowHTML(category, d){
+  const cat = category.toLowerCase();
+  return `<tr data-id="${d.sku_id}">
+    <td><input class="inline-edit" data-field="jenis" value="${escAttr(d.jenis)}"></td>
+    <td><input class="inline-edit" data-field="kompatibel_model" value="${escAttr(d.kompatibel_model||'')}"></td>
+    <td>${d.qty}</td>
+    <td>${d.gudang}</td>
+    <td><input class="inline-edit" data-field="supplier" value="${escAttr(d.supplier)}"></td>
+    <td><input class="inline-edit" type="number" min="0" step="1000" data-field="harga_beli" value="${d.harga_beli}"></td>
+    <td><input class="inline-edit" type="number" min="0" step="1000" data-field="harga_jual" value="${d.harga_jual}"></td>
+    <td>${d.tanggal_update}</td>
+    <td><div class="row-actions"><button type="button" onclick="openStokTrxModal('${category}','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('${cat}','${d.sku_id}')">Detail</button><button type="button" class="del" onclick="deleteStockConfirm('${cat}','${d.sku_id}')">Hapus</button></div></td>
+  </tr>`;
+}
+function parseStockInlineValue(field, val){
+  return (field==='harga_beli' || field==='harga_jual') ? (parseFloat(val)||0) : val;
+}
+
 // ---- Dusbox ----
 const dusboxDash = buildCategoryDashboard({ data:dusboxData, prefix:'dusbox', groupKey:'kompatibel_model', chartId:'chartDusbox' });
 function renderDusboxTable(){
@@ -1873,10 +2010,10 @@ function renderDusboxTable(){
   });
   document.getElementById('dusboxResultCount').textContent = `Menampilkan ${rows.length} dari ${dusboxData.length} SKU`;
   document.getElementById('dusboxTableCount').textContent = `(${dusboxData.length} SKU total)`;
-  document.getElementById('dusboxTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Dusbox','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('dusbox','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('dusbox','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
+  document.getElementById('dusboxTbody').innerHTML = rows.map(d=>stockInlineRowHTML('Dusbox', d)).join('');
 }
 ['dusboxSearch','dusboxFModel','dusboxFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderDusboxTable));
+wireInlineEdit('dusboxTbody', 'dusbox', ()=>dusboxData, 'sku_id', parseStockInlineValue);
 
 // ---- Aksesoris ----
 const aksesorisDash = buildCategoryDashboard({ data:aksesorisData, prefix:'aksesoris', groupKey:'jenis', chartId:'chartAksesoris' });
@@ -1894,10 +2031,10 @@ function renderAksesorisTable(){
   });
   document.getElementById('aksesorisResultCount').textContent = `Menampilkan ${rows.length} dari ${aksesorisData.length} SKU`;
   document.getElementById('aksesorisTableCount').textContent = `(${aksesorisData.length} SKU total)`;
-  document.getElementById('aksesorisTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Aksesoris','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('aksesoris','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('aksesoris','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
+  document.getElementById('aksesorisTbody').innerHTML = rows.map(d=>stockInlineRowHTML('Aksesoris', d)).join('');
 }
 ['aksesorisSearch','aksesorisFJenis','aksesorisFGudang','aksesorisFSupplier'].forEach(id=>document.getElementById(id).addEventListener('input', renderAksesorisTable));
+wireInlineEdit('aksesorisTbody', 'aksesoris', ()=>aksesorisData, 'sku_id', parseStockInlineValue);
 
 // ---- Sparepart ----
 const sparepartDash = buildCategoryDashboard({ data:sparepartData, prefix:'sparepart', groupKey:'jenis', chartId:'chartSparepart' });
@@ -1913,10 +2050,10 @@ function renderSparepartTable(){
   });
   document.getElementById('sparepartResultCount').textContent = `Menampilkan ${rows.length} dari ${sparepartData.length} SKU`;
   document.getElementById('sparepartTableCount').textContent = `(${sparepartData.length} SKU total)`;
-  document.getElementById('sparepartTbody').innerHTML = rows.map(d=>`
-    <tr><td>${d.jenis}</td><td>${d.kompatibel_model}</td><td>${d.qty}</td><td>${d.gudang}</td><td>${d.supplier}</td><td>${fmtRp(d.harga_beli)}</td><td>${fmtRp(d.harga_jual)}</td><td>${d.tanggal_update}</td><td><div class="row-actions"><button type="button" onclick="openStokTrxModal('Sparepart','${d.sku_id}')" title="Catat keluar/masuk/pindah cabang">🔀</button><button type="button" onclick="openStockModal('sparepart','${d.sku_id}')">Edit</button><button type="button" class="del" onclick="deleteStockConfirm('sparepart','${d.sku_id}')">Hapus</button></div></td></tr>`).join('');
+  document.getElementById('sparepartTbody').innerHTML = rows.map(d=>stockInlineRowHTML('Sparepart', d)).join('');
 }
 ['sparepartSearch','sparepartFJenis','sparepartFGudang'].forEach(id=>document.getElementById(id).addEventListener('input', renderSparepartTable));
+wireInlineEdit('sparepartTbody', 'sparepart', ()=>sparepartData, 'sku_id', parseStockInlineValue);
 
 // ---------- Dusbox/Aksesoris/Sparepart: Tambah/Edit/Hapus (modal generik, field-nya identik) ----------
 function nextStockSkuId(arr, prefix){
@@ -2258,6 +2395,11 @@ function populateRkFilters(){
   elS.innerHTML = '<option value="">Semua Status</option>' + statuses.map(s=>`<option value="${s}">${s}</option>`).join('');
 }
 
+const RK_TIPE_OPTIONS = ['Retur Cabang','Retur ke Supplier'];
+const RK_STATUS_OPTIONS = ['Diajukan','Diproses','Disetujui','Disetujui - Refund','Disetujui - Tukar Unit','Disetujui - Potong Harga','Ditolak','Selesai'];
+
+// Referensi & ID sengaja tetap read-only (Referensi berisi badge link IMEI yang dihitung dari
+// data unit, bukan teks polos, jadi tidak cocok jadi input inline).
 function renderRkTable(){
   const search = document.getElementById('rkSearch').value.toLowerCase();
   const fTipe = document.getElementById('rkFTipe').value;
@@ -2284,17 +2426,29 @@ function renderRkTable(){
       }
     }
     const isSupplierUnitClaim = r.tipe==='Retur ke Supplier' && r.kategori_barang==='Unit iPhone';
-    const dash = '<span style="color:var(--muted);">-</span>';
     return `
-    <tr>
-      <td>${r.id}</td><td>${r.tipe}</td><td>${r.kategori_barang}</td><td>${referensiCell}</td><td>${r.deskripsi}</td>
-      <td>${r.alasan}</td><td>${r.tanggal}</td><td>${r.status}</td><td>${fmtRp(r.nilai)}</td><td>${r.pihak_terkait}</td><td>${r.catatan}</td>
-      <td>${isSupplierUnitClaim ? (r.imei_baru || dash) : dash}</td>
-      <td>${isSupplierUnitClaim && r.nilai_cas>0 ? fmtRp(r.nilai_cas) : dash}</td>
-      <td>${isSupplierUnitClaim ? (r.tanggal_kembali || dash) : dash}</td>
+    <tr data-id="${r.id}">
+      <td>${r.id}</td>
+      <td><select class="inline-edit" data-field="tipe">${selectOptionsHTML(RK_TIPE_OPTIONS, r.tipe)}</select></td>
+      <td><input class="inline-edit" data-field="kategori_barang" list="rkKategoriList" value="${escAttr(r.kategori_barang)}"></td>
+      <td>${referensiCell}</td>
+      <td><input class="inline-edit" data-field="deskripsi" value="${escAttr(r.deskripsi)}"></td>
+      <td><input class="inline-edit" data-field="alasan" value="${escAttr(r.alasan)}"></td>
+      <td><input class="inline-edit" type="date" data-field="tanggal" value="${escAttr(r.tanggal)}"></td>
+      <td><select class="inline-edit" data-field="status">${selectOptionsHTML(RK_STATUS_OPTIONS, r.status)}</select></td>
+      <td><input class="inline-edit" type="number" min="0" step="1000" data-field="nilai" value="${r.nilai}"></td>
+      <td><input class="inline-edit" data-field="pihak_terkait" value="${escAttr(r.pihak_terkait)}"></td>
+      <td><input class="inline-edit" data-field="catatan" value="${escAttr(r.catatan)}"></td>
+      <td>${isSupplierUnitClaim ? `<input class="inline-edit" data-field="imei_baru" value="${escAttr(r.imei_baru||'')}">` : '<span style="color:var(--muted);">-</span>'}</td>
+      <td>${isSupplierUnitClaim ? `<input class="inline-edit" type="number" min="0" step="1000" data-field="nilai_cas" value="${r.nilai_cas||0}">` : '<span style="color:var(--muted);">-</span>'}</td>
+      <td>${isSupplierUnitClaim ? `<input class="inline-edit" type="date" data-field="tanggal_kembali" value="${escAttr(r.tanggal_kembali||'')}">` : '<span style="color:var(--muted);">-</span>'}</td>
       <td><div class="row-actions"><button type="button" onclick="openRkModal('${r.id}')">Edit</button><button type="button" class="del" onclick="deleteRkConfirm('${r.id}')">Hapus</button></div></td>
     </tr>`;}).join('');
 }
+function parseRkInlineValue(field, val){
+  return (field==='nilai' || field==='nilai_cas') ? (parseFloat(val)||0) : val;
+}
+wireInlineEdit('rkTbody', 'rk', ()=>returKlaimData, 'id', parseRkInlineValue);
 
 // ---------- Retur & Klaim: sub-panel otomatis "Unit Gagal QC" ----------
 // Sumber datanya bukan tabel tersendiri — murni turunan dari inventoryData yang
