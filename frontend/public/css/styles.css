@@ -53,7 +53,7 @@
   .panel h2{margin:0 0 12px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:space-between;}
   .panel h2 span.count{color:var(--muted);font-weight:400;font-size:12px;}
 
-  .charts-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+  .charts-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:16px;}
   @media(max-width:1000px){.charts-row{grid-template-columns:1fr;}}
   .chart-box{height:230px;position:relative;min-width:0;}
 

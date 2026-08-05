@@ -373,6 +373,23 @@ function renderCharts(){
     options:{ plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10}, padding:8}}} }
   });
 
+  // Kondisi (Brand New / Second-Bekas / Lainnya) bukan field tersendiri di Unit iPhone —
+  // diambil dari awalan teks Catatan (mis. "Brand New", "Second Original — Gudang Service"),
+  // sama seperti yang dipakai waktu parsing import stok fisik dari Excel.
+  const kondisiCounts = { 'Brand New':0, 'Second/Bekas':0, 'Lainnya/Tidak Diketahui':0 };
+  inventoryData.forEach(d=>{
+    const c = String(d.catatan||'').trim().toUpperCase();
+    if(c.startsWith('BRAND NEW')) kondisiCounts['Brand New']++;
+    else if(c.startsWith('SECOND')) kondisiCounts['Second/Bekas']++;
+    else kondisiCounts['Lainnya/Tidak Diketahui']++;
+  });
+  const kondisiColors = {'Brand New':'#22c55e','Second/Bekas':'#f59e0b','Lainnya/Tidak Diketahui':'#8b93ab'};
+  makeChart('chartKondisi', {
+    type:'doughnut',
+    data:{ labels:Object.keys(kondisiCounts), datasets:[{ data:Object.values(kondisiCounts), backgroundColor:Object.keys(kondisiCounts).map(k=>kondisiColors[k]), borderColor:'#131a2b', borderWidth:2 }]},
+    options:{ plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10}, padding:8}}} }
+  });
+
   const gudangCounts = countBy(inventoryData,'gudang');
   makeChart('chartGudang', {
     type:'bar',
