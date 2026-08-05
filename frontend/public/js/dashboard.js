@@ -631,22 +631,37 @@ function stokTersedia(model){
   }).length;
 }
 
+// Reorder Alert gabungan — dipakai di tab Supply Chain, menggabungkan Unit iPhone (threshold
+// per model dari reorderThresholds) dengan Dusbox/Aksesoris/Sparepart (reorder_point per SKU,
+// data yang sama dipakai masing-masing panel kategori sendiri-sendiri) jadi satu daftar.
 function renderReorder(){
-  const rows = Object.keys(reorderThresholds).map(model=>{
+  const unitRows = Object.keys(reorderThresholds).map(model=>{
     const stok = stokTersedia(model);
     const threshold = reorderThresholds[model];
-    return { model, stok, threshold, deficit: threshold - stok };
-  }).filter(r=>r.deficit > 0).sort((a,b)=>b.deficit-a.deficit);
+    return { kategori:'Unit iPhone', nama: model, stok, threshold, deficit: threshold - stok };
+  }).filter(r=>r.deficit > 0);
 
-  document.getElementById('reorderCount').textContent = `${rows.length} model perlu reorder`;
+  const stockCatRows = (kategori, arr) => arr.filter(d=>d.qty < d.reorder_point).map(d=>({
+    kategori, nama: `${d.jenis}${d.kompatibel_model ? ' · '+d.kompatibel_model : ''}`,
+    stok: d.qty, threshold: d.reorder_point, deficit: d.reorder_point - d.qty,
+  }));
+
+  const rows = [
+    ...unitRows,
+    ...stockCatRows('Dusbox', dusboxData),
+    ...stockCatRows('Aksesoris', aksesorisData),
+    ...stockCatRows('Sparepart', sparepartData),
+  ].sort((a,b)=>b.deficit-a.deficit);
+
+  document.getElementById('reorderCount').textContent = `${rows.length} item perlu reorder`;
   document.getElementById('reorderList').innerHTML = rows.map(r=>`
     <div class="alert-item">
       <div>
-        <div class="a-model">${r.model}</div>
+        <div class="a-model"><span class="pill" style="margin-right:6px;">${r.kategori}</span>${r.nama}</div>
         <div style="color:var(--muted)">Stok tersedia: ${r.stok} · Batas aman: ${r.threshold}</div>
       </div>
-      <div class="a-days" style="color:var(--danger);">+${r.deficit} unit</div>
-    </div>`).join('') || '<div style="color:var(--muted);font-size:12px;">Semua model masih di atas batas aman.</div>';
+      <div class="a-days" style="color:var(--danger);">+${r.deficit}</div>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:12px;">Semua model/SKU masih di atas batas aman.</div>';
 }
 
 // ---------- Demand vs Stok (tren mingguan) ----------
@@ -697,9 +712,11 @@ function populatePoFilters(){
 }
 
 function renderPoTable(){
+  const kategori = document.getElementById('fPoKategori').value;
   const supplier = document.getElementById('fPoSupplier').value;
   const status = document.getElementById('fPoStatus').value;
   let rows = purchaseOrders.filter(p=>{
+    if(kategori && p.kategori!==kategori) return false;
     if(supplier && p.supplier!==supplier) return false;
     if(status && p.status!==status) return false;
     return true;
@@ -711,6 +728,7 @@ function renderPoTable(){
     return `
     <tr>
       <td>${p.po_id}</td>
+      <td>${p.kategori || 'Unit iPhone'}</td>
       <td>${p.supplier}</td>
       <td>${p.model}</td>
       <td>${p.qty}</td>
@@ -726,27 +744,37 @@ function renderPoTable(){
   }).join('');
 }
 
+document.getElementById('fPoKategori').addEventListener('input', renderPoTable);
 document.getElementById('fPoSupplier').addEventListener('input', renderPoTable);
 document.getElementById('fPoStatus').addEventListener('input', renderPoTable);
 
 // ---------- Purchase Order: Tambah/Edit/Hapus (modal) ----------
+const PO_KATEGORI_ITEMS = {
+  'Unit iPhone': () => Object.keys(reorderThresholds),
+  'Dusbox': () => [...new Set(dusboxData.map(d=>d.jenis))],
+  'Aksesoris': () => [...new Set(aksesorisData.map(d=>d.jenis))],
+  'Sparepart': () => [...new Set(sparepartData.map(d=>d.jenis))],
+};
+
 function populatePoModalDatalists(){
+  const kategori = document.getElementById('poFKategori').value || 'Unit iPhone';
   const suppliers = [...new Set([...purchaseOrders.map(p=>p.supplier), ...inventoryData.map(d=>d.supplier)])].sort();
-  const models = Object.keys(reorderThresholds);
+  const models = (PO_KATEGORI_ITEMS[kategori] ? PO_KATEGORI_ITEMS[kategori]() : []).sort();
   const gudangs = [...new Set(inventoryData.map(d=>d.gudang))].sort();
   document.getElementById('poSupplierList').innerHTML = suppliers.map(s=>`<option value="${s}">`).join('');
   document.getElementById('poModelList').innerHTML = models.map(m=>`<option value="${m}">`).join('');
   document.getElementById('poGudangList').innerHTML = gudangs.map(g=>`<option value="${g}">`).join('');
 }
+document.getElementById('poFKategori').addEventListener('change', populatePoModalDatalists);
 
 function openPoModal(id){
-  populatePoModalDatalists();
   const isEdit = !!id;
   document.getElementById('poModalTitle').textContent = isEdit ? 'Edit Purchase Order' : 'Tambah Purchase Order';
   document.getElementById('poFormId').value = id || '';
   if(isEdit){
     const p = purchaseOrders.find(x=>x.po_id===id);
     if(!p) return;
+    document.getElementById('poFKategori').value = p.kategori || 'Unit iPhone';
     document.getElementById('poFSupplier').value = p.supplier;
     document.getElementById('poFModel').value = p.model;
     document.getElementById('poFQty').value = p.qty;
@@ -759,6 +787,7 @@ function openPoModal(id){
     document.getElementById('poFBiayaKirim').value = p.biaya_kirim || 0;
     document.getElementById('poFBiayaLain').value = p.biaya_lain || 0;
   }else{
+    document.getElementById('poFKategori').value = 'Unit iPhone';
     document.getElementById('poFSupplier').value = '';
     document.getElementById('poFModel').value = '';
     document.getElementById('poFQty').value = 1;
@@ -771,6 +800,7 @@ function openPoModal(id){
     document.getElementById('poFBiayaKirim').value = 0;
     document.getElementById('poFBiayaLain').value = 0;
   }
+  populatePoModalDatalists();
   document.getElementById('poModalOverlay').classList.add('open');
 }
 window.openPoModal = openPoModal;
@@ -793,6 +823,7 @@ function refreshAfterPoChange(){
 
 function savePoForm(){
   const id = document.getElementById('poFormId').value;
+  const kategori = document.getElementById('poFKategori').value;
   const supplier = document.getElementById('poFSupplier').value.trim();
   const model = document.getElementById('poFModel').value.trim();
   const qty = parseInt(document.getElementById('poFQty').value,10) || 0;
@@ -816,7 +847,7 @@ function savePoForm(){
   }
 
   const payload = {
-    supplier, model, qty, gudang_tujuan: gudang, tanggal_order: tglOrder, estimasi_tiba: estTiba,
+    kategori, supplier, model, qty, gudang_tujuan: gudang, tanggal_order: tglOrder, estimasi_tiba: estTiba,
     status, tanggal_diterima: status==='Diterima' ? tglDiterima : null,
     lead_time_aktual: status==='Diterima' ? leadTimeAktual : null,
     total_nilai: totalNilai, biaya_kirim: biayaKirim, biaya_lain: biayaLain
@@ -922,12 +953,27 @@ function renderRestockForecast(){
 }
 
 // ---------- Supplier performance ----------
+// Total Item & Nilai Beli menjumlahkan 4 kategori (Unit iPhone per-unit, Dusbox/Aksesoris/
+// Sparepart per-qty-SKU); % Trouble tetap khusus Unit iPhone karena kategori lain tidak
+// punya konsep status Trouble/Gagal QC.
 function computeSupplierStats(){
-  const suppliers = [...new Set(inventoryData.map(d=>d.supplier))].sort();
+  const suppliers = [...new Set([
+    ...inventoryData.map(d=>d.supplier), ...dusboxData.map(d=>d.supplier),
+    ...aksesorisData.map(d=>d.supplier), ...sparepartData.map(d=>d.supplier),
+  ])].filter(Boolean).sort();
+
   return suppliers.map(sup=>{
     const units = inventoryData.filter(d=>d.supplier===sup);
     const troubleCount = units.filter(d=>effectiveStatus(d)==='Trouble').length;
     const troublePct = units.length ? (troubleCount/units.length*100) : 0;
+
+    const dus = dusboxData.filter(d=>d.supplier===sup);
+    const acc = aksesorisData.filter(d=>d.supplier===sup);
+    const spp = sparepartData.filter(d=>d.supplier===sup);
+    const totalItemAll = units.length + dus.reduce((a,d)=>a+d.qty,0) + acc.reduce((a,d)=>a+d.qty,0) + spp.reduce((a,d)=>a+d.qty,0);
+    const nilaiBeliAll = units.reduce((a,d)=>a+d.harga_beli,0)
+      + dus.reduce((a,d)=>a+d.qty*d.harga_beli,0) + acc.reduce((a,d)=>a+d.qty*d.harga_beli,0)
+      + spp.reduce((a,d)=>a+d.qty*d.harga_beli,0);
 
     const pos = purchaseOrders.filter(p=>p.supplier===sup);
     const done = pos.filter(p=>p.status==='Diterima');
@@ -938,7 +984,7 @@ function computeSupplierStats(){
     if(troublePct < 10 && (onTime===null || onTime>=75)) { rating='rating-good'; ratingLabel='Baik'; }
     if(troublePct >= 20 || (onTime!==null && onTime<50)) { rating='rating-bad'; ratingLabel='Perlu Evaluasi'; }
 
-    return { sup, total: units.length, troublePct, doneCount: done.length, avgLead, onTime, rating, ratingLabel };
+    return { sup, total: units.length, totalItemAll, nilaiBeliAll, troublePct, doneCount: done.length, avgLead, onTime, rating, ratingLabel };
   });
 }
 
@@ -948,7 +994,8 @@ function renderSupplierPerformance(){
   document.getElementById('supplierTbody').innerHTML = rows.map(r=>`
     <tr>
       <td>${r.sup}</td>
-      <td>${r.total}</td>
+      <td>${r.totalItemAll}</td>
+      <td>${fmtRp(r.nilaiBeliAll)}</td>
       <td>${r.troublePct.toFixed(1)}%</td>
       <td>${r.doneCount}</td>
       <td>${r.avgLead!=null ? r.avgLead.toFixed(1)+' hari' : '-'}</td>
@@ -962,7 +1009,7 @@ const SCORECARD_COLORS = ['#3b82f6','#f59e0b','#22c55e','#a855f7','#ef4444','#06
 
 function renderSupplierScorecard(){
   const rows = computeSupplierStats();
-  const maxTotal = Math.max(...rows.map(r=>r.total), 1);
+  const maxTotal = Math.max(...rows.map(r=>r.totalItemAll), 1);
   document.getElementById('scorecardNote').textContent = `${rows.length} supplier dibandingkan`;
 
   const datasets = rows.map((r,i)=>{
@@ -972,7 +1019,7 @@ function renderSupplierScorecard(){
       data: [
         Math.round(r.onTime!=null ? r.onTime : 100),
         Math.round(100 - r.troublePct),
-        Math.round((r.total/maxTotal)*100)
+        Math.round((r.totalItemAll/maxTotal)*100)
       ],
       borderColor: color,
       backgroundColor: color+'33',

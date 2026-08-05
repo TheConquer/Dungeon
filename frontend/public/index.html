@@ -39,6 +39,7 @@
     <button class="tab-btn" data-tab="aksesoris">🔌 Aksesoris</button>
     <button class="tab-btn" data-tab="sparepart">🔧 Sparepart</button>
     <button class="tab-btn" data-tab="stoktrx">🔀 Transaksi Item</button>
+    <button class="tab-btn" data-tab="supplychain">🚚 Supply Chain</button>
     <button class="tab-btn" data-tab="returklaim">🔄 Retur &amp; Klaim</button>
     <button class="tab-btn" data-tab="import">📤 Import Data</button>
     <button class="tab-btn" data-tab="service">🛠️ Unit Service</button>
@@ -65,7 +66,6 @@
     <button class="subtab-btn" data-subtab="fifoflash">🔥 FIFO &amp; Flash Sale</button>
     <button class="subtab-btn" data-subtab="dataunit">📋 Data Unit</button>
     <button class="subtab-btn" data-subtab="reportqc">✅ Report QC <span class="subtab-badge" id="qcTabBadge" style="display:none;"></span></button>
-    <button class="subtab-btn" data-subtab="supplychain">🚚 Supply Chain</button>
     <button class="subtab-btn" data-subtab="analisis">📈 Analisis Lanjutan</button>
     <button class="subtab-btn" data-subtab="unitdp">📋 Unit DP</button>
   </div>
@@ -179,101 +179,6 @@
     </div>
   </div><!-- /subtab-reportqc -->
 
-  <div class="subtab-content" id="subtab-supplychain" style="display:none;">
-    <div class="grid2">
-      <div class="panel">
-        <h2>⚠️ Reorder Alert <span class="count" id="reorderCount"></span></h2>
-        <div class="alert-list" id="reorderList"></div>
-      </div>
-      <div class="panel">
-        <h2>Tren Penjualan Mingguan vs Stok <span class="count" id="demandNote"></span></h2>
-        <div class="chart-box" style="height:210px;"><canvas id="chartDemand"></canvas></div>
-      </div>
-    </div>
-
-    <div class="panel" style="margin-bottom:16px;">
-      <h2>🔮 Prediksi Kebutuhan Restock <span class="count" id="restockForecastCount"></span></h2>
-      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Proyeksi kapan tiap model kehabisan stok berdasarkan rata² penjualan 8 minggu terakhir, plus saran tanggal & qty order berikutnya (sudah memperhitungkan rata² lead time supplier). Diurutkan dari yang paling mendesak.</p>
-      <div class="table-scroll" style="max-height:320px;">
-        <table>
-          <thead>
-            <tr>
-              <th>Model</th><th>Stok Saat Ini</th><th>Rata² Jual</th><th>Sisa Waktu</th>
-              <th>Proyeksi Habis</th><th>Saran Tgl Order</th><th>Saran Qty</th>
-            </tr>
-          </thead>
-          <tbody id="restockForecastTbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="panel" style="margin-bottom:16px;">
-      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
-        <h2 style="margin:0;">📥 Purchase Order / Incoming Shipment <span class="count" id="poCount"></span></h2>
-        <button class="btn" type="button" onclick="openPoModal()">+ Tambah PO Baru</button>
-      </div>
-      <div class="filters">
-        <select id="fPoSupplier"><option value="">Semua Supplier</option></select>
-        <select id="fPoStatus">
-          <option value="">Semua Status</option>
-          <option value="Dalam Perjalanan">Dalam Perjalanan</option>
-          <option value="Diterima">Diterima</option>
-          <option value="Terlambat">Terlambat</option>
-        </select>
-      </div>
-      <div class="table-scroll" style="max-height:340px;">
-        <table>
-          <thead>
-            <tr>
-              <th>PO ID</th><th>Supplier</th><th>Model</th><th>Qty</th><th>Cabang Tujuan</th>
-              <th>Tgl Order</th><th>Estimasi Tiba</th><th>Tgl Diterima</th><th>Lead Time</th><th>Status</th><th>Total Biaya</th><th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="poTbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="grid2">
-      <div class="panel">
-        <h2>📊 Performa Supplier</h2>
-        <div class="table-scroll" style="max-height:340px;">
-          <table>
-            <thead>
-              <tr>
-                <th>Supplier</th><th>Total Unit</th><th>% Trouble/Gagal QC</th>
-                <th>PO Selesai</th><th>Rata² Lead Time</th><th>On-Time Rate</th><th>Rating</th>
-              </tr>
-            </thead>
-            <tbody id="supplierTbody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="panel">
-        <h2>🏆 Supplier Scorecard <span class="count" id="scorecardNote"></span></h2>
-        <div class="chart-box" style="height:280px;"><canvas id="chartScorecard"></canvas></div>
-      </div>
-    </div>
-
-    <div class="panel" style="margin-bottom:16px;">
-      <h2>💸 Analisis Biaya Pengadaan <span class="count" id="costAnalysisNote"></span></h2>
-      <div class="grid2">
-        <div class="chart-box" style="height:230px;"><canvas id="chartCostPerSupplier"></canvas></div>
-        <div class="chart-box" style="height:230px;"><canvas id="chartCostTrend"></canvas></div>
-      </div>
-      <div class="table-scroll" style="max-height:280px;margin-top:14px;">
-        <table>
-          <thead>
-            <tr>
-              <th>Supplier</th><th>Total PO</th><th>Nilai Barang</th><th>Ongkir</th><th>Biaya Lain</th><th>Grand Total</th>
-            </tr>
-          </thead>
-          <tbody id="costBreakdownTbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div><!-- /subtab-supplychain -->
 
   <div class="subtab-content" id="subtab-analisis" style="display:none;">
     <div class="grid2">
@@ -497,6 +402,109 @@
       </div>
     </div>
   </div><!-- /tab-stoktrx -->
+
+  <div class="tab-content" id="tab-supplychain" style="display:none;">
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>⚠️ Reorder Alert — Semua Kategori <span class="count" id="reorderCount"></span></h2>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Gabungan model/SKU yang stoknya di bawah batas aman, dari Unit iPhone, Dusbox, Aksesoris, dan Sparepart sekaligus.</p>
+      <div class="alert-list" id="reorderList"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>Tren Penjualan Mingguan vs Stok (Unit iPhone) <span class="count" id="demandNote"></span></h2>
+      <div class="chart-box" style="height:210px;"><canvas id="chartDemand"></canvas></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <h2>🔮 Prediksi Kebutuhan Restock — Unit iPhone <span class="count" id="restockForecastCount"></span></h2>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Proyeksi kapan tiap model kehabisan stok berdasarkan rata² penjualan 8 minggu terakhir, plus saran tanggal & qty order berikutnya (sudah memperhitungkan rata² lead time supplier). Diurutkan dari yang paling mendesak. Khusus Unit iPhone karena Dusbox/Aksesoris/Sparepart tidak punya riwayat tanggal jual per-item.</p>
+      <div class="table-scroll" style="max-height:320px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th><th>Stok Saat Ini</th><th>Rata² Jual</th><th>Sisa Waktu</th>
+              <th>Proyeksi Habis</th><th>Saran Tgl Order</th><th>Saran Qty</th>
+            </tr>
+          </thead>
+          <tbody id="restockForecastTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
+        <h2 style="margin:0;">📥 Purchase Order / Incoming Shipment <span class="count" id="poCount"></span></h2>
+        <button class="btn" type="button" onclick="openPoModal()">+ Tambah PO Baru</button>
+      </div>
+      <div class="filters">
+        <select id="fPoKategori">
+          <option value="">Semua Kategori</option>
+          <option value="Unit iPhone">Unit iPhone</option>
+          <option value="Dusbox">Dusbox</option>
+          <option value="Aksesoris">Aksesoris</option>
+          <option value="Sparepart">Sparepart</option>
+        </select>
+        <select id="fPoSupplier"><option value="">Semua Supplier</option></select>
+        <select id="fPoStatus">
+          <option value="">Semua Status</option>
+          <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+          <option value="Diterima">Diterima</option>
+          <option value="Terlambat">Terlambat</option>
+        </select>
+      </div>
+      <div class="table-scroll" style="max-height:340px;">
+        <table>
+          <thead>
+            <tr>
+              <th>PO ID</th><th>Kategori</th><th>Supplier</th><th>Model / Item</th><th>Qty</th><th>Cabang Tujuan</th>
+              <th>Tgl Order</th><th>Estimasi Tiba</th><th>Tgl Diterima</th><th>Lead Time</th><th>Status</th><th>Total Biaya</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="poTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>📊 Performa Supplier</h2>
+        <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Total Item &amp; Nilai Beli menjumlahkan semua kategori; % Trouble khusus dihitung dari Unit iPhone (kategori lain tidak punya status Trouble).</p>
+        <div class="table-scroll" style="max-height:340px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Supplier</th><th>Total Item (Semua Kategori)</th><th>Nilai Beli (Semua Kategori)</th><th>% Trouble Unit iPhone</th>
+                <th>PO Selesai</th><th>Rata² Lead Time</th><th>On-Time Rate</th><th>Rating</th>
+              </tr>
+            </thead>
+            <tbody id="supplierTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>🏆 Supplier Scorecard <span class="count" id="scorecardNote"></span></h2>
+        <div class="chart-box" style="height:280px;"><canvas id="chartScorecard"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>💸 Analisis Biaya Pengadaan — Semua Kategori <span class="count" id="costAnalysisNote"></span></h2>
+      <div class="grid2">
+        <div class="chart-box" style="height:230px;"><canvas id="chartCostPerSupplier"></canvas></div>
+        <div class="chart-box" style="height:230px;"><canvas id="chartCostTrend"></canvas></div>
+      </div>
+      <div class="table-scroll" style="max-height:280px;margin-top:14px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Supplier</th><th>Total PO</th><th>Nilai Barang</th><th>Ongkir</th><th>Biaya Lain</th><th>Grand Total</th>
+            </tr>
+          </thead>
+          <tbody id="costBreakdownTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /tab-supplychain -->
 
   <div class="tab-content" id="tab-returklaim" style="display:none;">
     <div class="panel" style="margin-bottom:16px;">
@@ -1576,14 +1584,25 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
     <div class="dash-modal">
       <h2 id="poModalTitle">Tambah Purchase Order</h2>
       <input type="hidden" id="poFormId">
-      <div class="dash-field">
-        <label>Supplier</label>
-        <input type="text" id="poFSupplier" list="poSupplierList" placeholder="Nama supplier">
-        <datalist id="poSupplierList"></datalist>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Kategori</label>
+          <select id="poFKategori">
+            <option value="Unit iPhone">Unit iPhone</option>
+            <option value="Dusbox">Dusbox</option>
+            <option value="Aksesoris">Aksesoris</option>
+            <option value="Sparepart">Sparepart</option>
+          </select>
+        </div>
+        <div class="dash-field">
+          <label>Supplier</label>
+          <input type="text" id="poFSupplier" list="poSupplierList" placeholder="Nama supplier">
+          <datalist id="poSupplierList"></datalist>
+        </div>
       </div>
       <div class="dash-field-row">
         <div class="dash-field">
-          <label>Model</label>
+          <label>Model / Item</label>
           <input type="text" id="poFModel" list="poModelList" placeholder="Contoh: iPhone 15 Pro">
           <datalist id="poModelList"></datalist>
         </div>

@@ -3,7 +3,7 @@ const { resolveSupplierId, resolveBranchId } = require('../utils/lookup');
 const { nextPoId } = require('../utils/idGenerator');
 
 const SELECT = `
-  SELECT po.po_id, s.nama AS supplier, po.model, po.qty, b.nama AS gudang_tujuan,
+  SELECT po.po_id, s.nama AS supplier, po.kategori, po.model, po.qty, b.nama AS gudang_tujuan,
          po.tanggal_order, po.estimasi_tiba, po.tanggal_diterima, po.lead_time_aktual,
          po.status, po.total_nilai, po.biaya_kirim, po.biaya_lain
   FROM purchase_orders po
@@ -27,11 +27,11 @@ async function create(data) {
     const branchId = await resolveBranchId(client, data.gudang_tujuan);
     const poId = data.po_id || (await nextPoId(client));
     await client.query(
-      `INSERT INTO purchase_orders (po_id, supplier_id, model, qty, gudang_tujuan_id, tanggal_order,
+      `INSERT INTO purchase_orders (po_id, supplier_id, kategori, model, qty, gudang_tujuan_id, tanggal_order,
                                      estimasi_tiba, tanggal_diterima, lead_time_aktual, status, total_nilai, biaya_kirim, biaya_lain)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
       [
-        poId, supplierId, data.model, data.qty, branchId, data.tanggal_order,
+        poId, supplierId, data.kategori || 'Unit iPhone', data.model, data.qty, branchId, data.tanggal_order,
         data.estimasi_tiba || null, data.tanggal_diterima || null, data.lead_time_aktual || null,
         data.status || 'Dalam Perjalanan', data.total_nilai || 0, data.biaya_kirim || 0, data.biaya_lain || 0,
       ]
@@ -45,12 +45,12 @@ async function update(poId, data) {
     const supplierId = await resolveSupplierId(client, data.supplier);
     const branchId = await resolveBranchId(client, data.gudang_tujuan);
     await client.query(
-      `UPDATE purchase_orders SET supplier_id=$2, model=$3, qty=$4, gudang_tujuan_id=$5, tanggal_order=$6,
-                                   estimasi_tiba=$7, tanggal_diterima=$8, lead_time_aktual=$9, status=$10,
-                                   total_nilai=$11, biaya_kirim=$12, biaya_lain=$13
+      `UPDATE purchase_orders SET supplier_id=$2, kategori=$3, model=$4, qty=$5, gudang_tujuan_id=$6, tanggal_order=$7,
+                                   estimasi_tiba=$8, tanggal_diterima=$9, lead_time_aktual=$10, status=$11,
+                                   total_nilai=$12, biaya_kirim=$13, biaya_lain=$14
        WHERE po_id=$1`,
       [
-        poId, supplierId, data.model, data.qty, branchId, data.tanggal_order,
+        poId, supplierId, data.kategori || 'Unit iPhone', data.model, data.qty, branchId, data.tanggal_order,
         data.estimasi_tiba || null, data.tanggal_diterima || null, data.lead_time_aktual || null,
         data.status, data.total_nilai || 0, data.biaya_kirim || 0, data.biaya_lain || 0,
       ]
@@ -71,11 +71,11 @@ async function bulkReplace(rows) {
       const supplierId = await resolveSupplierId(client, r.supplier);
       const branchId = await resolveBranchId(client, r.gudang_tujuan);
       await client.query(
-        `INSERT INTO purchase_orders (po_id, supplier_id, model, qty, gudang_tujuan_id, tanggal_order,
+        `INSERT INTO purchase_orders (po_id, supplier_id, kategori, model, qty, gudang_tujuan_id, tanggal_order,
                                        estimasi_tiba, tanggal_diterima, lead_time_aktual, status, total_nilai, biaya_kirim, biaya_lain)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
         [
-          r.po_id, supplierId, r.model, r.qty, branchId, r.tanggal_order, r.estimasi_tiba || null,
+          r.po_id, supplierId, r.kategori || 'Unit iPhone', r.model, r.qty, branchId, r.tanggal_order, r.estimasi_tiba || null,
           r.tanggal_diterima || null, r.lead_time_aktual || null, r.status, r.total_nilai || 0,
           r.biaya_kirim || 0, r.biaya_lain || 0,
         ]

@@ -149,6 +149,7 @@ CREATE INDEX IF NOT EXISTS idx_returklaim_status ON retur_klaim(status);
 CREATE TABLE IF NOT EXISTS purchase_orders (
   po_id TEXT PRIMARY KEY,
   supplier_id INT REFERENCES suppliers(id),
+  kategori TEXT NOT NULL DEFAULT 'Unit iPhone' CHECK (kategori IN ('Unit iPhone','Dusbox','Aksesoris','Sparepart')),
   model TEXT NOT NULL,
   qty INT NOT NULL,
   gudang_tujuan_id INT REFERENCES branches(id),

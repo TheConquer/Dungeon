@@ -156,11 +156,11 @@ async function restoreFromBackup(data) {
         const supplierId = await resolveSupplierId(client, r.supplier);
         const branchId = await resolveBranchId(client, r.gudang_tujuan);
         await client.query(
-          `INSERT INTO purchase_orders (po_id, supplier_id, model, qty, gudang_tujuan_id, tanggal_order,
+          `INSERT INTO purchase_orders (po_id, supplier_id, kategori, model, qty, gudang_tujuan_id, tanggal_order,
                                          estimasi_tiba, tanggal_diterima, lead_time_aktual, status, total_nilai, biaya_kirim, biaya_lain)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
           [
-            r.po_id, supplierId, r.model, r.qty, branchId, r.tanggal_order, r.estimasi_tiba || null,
+            r.po_id, supplierId, r.kategori || 'Unit iPhone', r.model, r.qty, branchId, r.tanggal_order, r.estimasi_tiba || null,
             r.tanggal_diterima || null, r.lead_time_aktual || null, r.status, r.total_nilai || 0,
             r.biaya_kirim || 0, r.biaya_lain || 0,
           ]
