@@ -44,6 +44,8 @@
     <button class="tab-btn" data-tab="import">📤 Import Data</button>
     <button class="tab-btn" data-tab="service">🛠️ Unit Service</button>
     <button class="tab-btn" data-tab="stiker">🏷️ Stiker Barcode</button>
+    <button class="tab-btn" data-tab="laporan">📊 Laporan</button>
+    <button class="tab-btn" data-tab="riwayat">🕘 Riwayat</button>
   </div>
 
   <div class="tab-content" id="tab-dashboardutama">
@@ -1263,6 +1265,75 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
 </div>
   </div><!-- /tab-stiker -->
 
+  <div class="tab-content" id="tab-laporan" style="display:none;">
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <h2 style="margin:0;">📊 Laporan</h2>
+        <div class="filters" style="margin-bottom:0;">
+          <input type="date" id="lapFrom" title="Dari tanggal">
+          <input type="date" id="lapTo" title="Sampai tanggal">
+          <button class="btn btn-outline" type="button" onclick="laporanApp.reload()">🔎 Terapkan</button>
+          <button class="btn" type="button" onclick="laporanApp.exportExcel()">⬇ Export Excel</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" id="lap_tabPenjualan" onclick="laporanApp.switchType('penjualan')">💰 Penjualan</button>
+        <button class="tab-btn" id="lap_tabStok" onclick="laporanApp.switchType('stok')">📦 Stok</button>
+        <button class="tab-btn" id="lap_tabService" onclick="laporanApp.switchType('service')">🛠️ Service</button>
+        <button class="tab-btn" id="lap_tabPo" onclick="laporanApp.switchType('po')">🚚 Purchase Order</button>
+      </div>
+      <p style="color:var(--muted);font-size:11px;margin:10px 0 0;" id="lapHint">Filter tanggal berdasarkan tanggal unit terjual.</p>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="kpi-grid" id="lapKpiGrid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="table-scroll" style="max-height:420px;">
+        <table>
+          <thead id="lapTableHead"></thead>
+          <tbody id="lapTableBody"></tbody>
+        </table>
+      </div>
+      <div id="lapMenipisBox" style="display:none;margin-top:14px;"></div>
+    </div>
+  </div><!-- /tab-laporan -->
+
+  <div class="tab-content" id="tab-riwayat" style="display:none;">
+    <div class="panel">
+      <h2>🕘 Riwayat Aktivitas</h2>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Catatan tambah/ubah/hapus/sinkronisasi data dari seluruh modul. Karena aplikasi ini pakai satu login bersama, kolom "Oleh" menampilkan username login, bukan orang per-orang.</p>
+      <div class="filters">
+        <select id="rwModul"><option value="">Semua Modul</option></select>
+        <select id="rwAksi">
+          <option value="">Semua Aksi</option>
+          <option value="create">Tambah</option>
+          <option value="update">Ubah</option>
+          <option value="delete">Hapus</option>
+          <option value="import">Sinkronisasi</option>
+          <option value="restore">Restore Backup</option>
+        </select>
+        <input type="date" id="rwFrom" title="Dari tanggal">
+        <input type="date" id="rwTo" title="Sampai tanggal">
+        <button class="btn btn-outline" type="button" onclick="riwayatApp.reload()">🔎 Terapkan</button>
+      </div>
+      <div class="table-scroll" style="max-height:480px;">
+        <table>
+          <thead><tr><th>Waktu</th><th>Modul</th><th>Aksi</th><th>Ringkasan</th><th>Oleh</th></tr></thead>
+          <tbody id="rwTbody"></tbody>
+        </table>
+      </div>
+      <div class="btn-row" style="justify-content:space-between;margin-top:10px;">
+        <span id="rwPageInfo" style="color:var(--muted);font-size:12px;"></span>
+        <div class="btn-row" style="gap:6px;">
+          <button class="btn btn-outline" type="button" onclick="riwayatApp.prevPage()">‹ Sebelumnya</button>
+          <button class="btn btn-outline" type="button" onclick="riwayatApp.nextPage()">Berikutnya ›</button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-riwayat -->
+
   <p class="footer-note">Data bersifat sample untuk keperluan demonstrasi dashboard. Ganti dengan data stok aktual dari sistem/kasir Anda.</p>
 
   <!-- ===== Modal Tambah/Edit Purchase Order (Supply Chain) ===== -->
@@ -1790,5 +1861,6 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
 <script src="js/dashboard.js"></script>
 <script src="js/service.js"></script>
 <script src="js/sticker.js"></script>
+<script src="js/laporan.js"></script>
 </body>
 </html>

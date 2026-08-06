@@ -1,5 +1,5 @@
 const express = require('express');
-const { makeCrudRouterWithImport } = require('../utils/crudFactory');
+const { makeCrudRouterWithImport, logSafe } = require('../utils/crudFactory');
 const { asyncHandler } = require('../middleware/errorHandler');
 const model = require('../models/units.model');
 
@@ -15,16 +15,28 @@ router.get('/by-imei/:imei', asyncHandler(async (req, res) => {
 // report QC, atau tanggal terjual unit yang sudah ada. Lihat catatan di units.model.js.
 router.post('/sync', asyncHandler(async (req, res) => {
   const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
-  res.json(await model.syncFromFile(rows));
+  const result = await model.syncFromFile(rows);
+  logSafe({
+    modul: 'Unit iPhone', aksi: 'import',
+    ringkasan: `Sync Harian: ${rows.length} baris dari file`,
+    aktor: req.session && req.session.username,
+  });
+  res.json(result);
 }));
 
 // Import "Unit Terjual": tandai unit yang sudah ada jadi Terjual dari file. Lihat catatan
 // di units.model.js — tidak pernah membuat unit baru.
 router.post('/mark-sold', asyncHandler(async (req, res) => {
   const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
-  res.json(await model.markSoldFromFile(rows));
+  const result = await model.markSoldFromFile(rows);
+  logSafe({
+    modul: 'Unit iPhone', aksi: 'update',
+    ringkasan: `Import Unit Terjual: ${rows.length} baris dari file`,
+    aktor: req.session && req.session.username,
+  });
+  res.json(result);
 }));
 
-router.use('/', makeCrudRouterWithImport(model, { notFoundMsg: 'Unit tidak ditemukan' }));
+router.use('/', makeCrudRouterWithImport(model, { notFoundMsg: 'Unit tidak ditemukan', modul: 'Unit iPhone' }));
 
 module.exports = router;

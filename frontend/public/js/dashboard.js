@@ -1876,6 +1876,14 @@ document.querySelectorAll('#tabNav .tab-btn').forEach(btn=>{
     if(btn.dataset.tab === 'dashboardutama'){
       renderDashboardUtama();
     }
+    // Laporan & Riwayat bootstrap datanya sendiri lewat laporan.js (modul terpisah, sama
+    // seperti Unit Service & Stiker Barcode) — cukup panggil reload tiap kali tab dibuka.
+    if(btn.dataset.tab === 'laporan' && window.laporanApp){
+      laporanApp.reload();
+    }
+    if(btn.dataset.tab === 'riwayat' && window.riwayatApp){
+      riwayatApp.reload();
+    }
   });
 });
 

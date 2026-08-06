@@ -274,4 +274,19 @@ CREATE TABLE IF NOT EXISTS sticker_items (
 );
 CREATE INDEX IF NOT EXISTS idx_sticker_type ON sticker_items(type);
 
+-- ============================================================
+-- RIWAYAT AKTIVITAS (log tambah/ubah/hapus/sinkronisasi per modul)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS activity_log (
+  id BIGSERIAL PRIMARY KEY,
+  waktu TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modul TEXT NOT NULL,
+  aksi TEXT NOT NULL CHECK (aksi IN ('create','update','delete','import','restore')),
+  ringkasan TEXT NOT NULL,
+  aktor TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_activitylog_waktu ON activity_log(waktu DESC);
+CREATE INDEX IF NOT EXISTS idx_activitylog_modul ON activity_log(modul);
+
 COMMIT;

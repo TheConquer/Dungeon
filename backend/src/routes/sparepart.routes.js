@@ -13,6 +13,6 @@ router.get('/find-linked', asyncHandler(async (req, res) => {
   res.json(row);
 }));
 
-router.use('/', makeCrudRouterWithImport(model, { notFoundMsg: 'Sparepart tidak ditemukan' }));
+router.use('/', makeCrudRouterWithImport(model, { notFoundMsg: 'Sparepart tidak ditemukan', modul: 'Sparepart' }));
 
 module.exports = router;

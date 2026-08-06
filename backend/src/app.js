@@ -48,6 +48,9 @@ app.use('/api/service/external', require('./routes/serviceExternal.routes'));
 app.use('/api/stickers', require('./routes/stickers.routes'));
 app.use('/api/backup', require('./routes/backup.routes'));
 
+app.use('/api/activity-log', require('./routes/activityLog.routes'));
+app.use('/api/reports', require('./routes/reports.routes'));
+
 // Frontend statis (satu Render/Railway service melayani API + frontend).
 // index:false supaya kita bisa gate index.html di belakang login sendiri di bawah.
 const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend', 'public');
