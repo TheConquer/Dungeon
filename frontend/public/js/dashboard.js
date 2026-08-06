@@ -831,6 +831,17 @@ function poPillClass(status){
   return { 'Dalam Perjalanan':'pill-po-transit','Diterima':'pill-po-received','Terlambat':'pill-po-late' }[status] || '';
 }
 
+// Status "Terlambat" biasanya diisi manual — banyak PO yang sudah kelewat estimasi_tiba tapi
+// belum sempat diupdate orangnya. Ini deteksi otomatis (murni tampilan, TIDAK mengubah status
+// tersimpan di database) supaya PO yang telat tetap kelihatan meski belum di-set manual.
+// Pola sama seperti requestDisplayStatus() untuk Permintaan Unit DP.
+function poIsAutoOverdue(p){
+  return p.status==='Dalam Perjalanan' && p.estimasi_tiba && new Date(p.estimasi_tiba) < new Date(REF_TODAY_STR);
+}
+function poDisplayStatus(p){
+  return poIsAutoOverdue(p) ? 'Terlambat' : p.status;
+}
+
 function populatePoFilters(){
   const suppliers = [...new Set(purchaseOrders.map(p=>p.supplier))].sort();
   document.getElementById('fPoSupplier').innerHTML = '<option value="">Semua Supplier</option>' + suppliers.map(s=>`<option value="${s}">${s}</option>`).join('');
@@ -845,13 +856,16 @@ function renderPoTable(){
   let rows = purchaseOrders.filter(p=>{
     if(kategori && p.kategori!==kategori) return false;
     if(supplier && p.supplier!==supplier) return false;
-    if(status && p.status!==status) return false;
+    if(status && poDisplayStatus(p)!==status) return false;
     return true;
   }).sort((a,b)=> new Date(b.tanggal_order) - new Date(a.tanggal_order));
 
-  document.getElementById('poCount').textContent = `${rows.length} dari ${purchaseOrders.length} PO`;
+  const overdueCount = purchaseOrders.filter(poIsAutoOverdue).length;
+  document.getElementById('poCount').textContent = `${rows.length} dari ${purchaseOrders.length} PO`
+    + (overdueCount ? ` · ⚠️ ${overdueCount} lewat estimasi tiba (belum diupdate)` : '');
   document.getElementById('poTbody').innerHTML = rows.map(p=>{
     const grandTotal = p.total_nilai + (p.biaya_kirim||0) + (p.biaya_lain||0);
+    const overdueBadge = poIsAutoOverdue(p) ? `<span class="pill ${poPillClass('Terlambat')}" style="margin-left:4px;" title="Estimasi tiba sudah lewat tapi status belum diupdate">⚠️ Terlambat</span>` : '';
     return `
     <tr data-id="${p.po_id}">
       <td>${p.po_id}</td>
@@ -864,7 +878,7 @@ function renderPoTable(){
       <td><input class="inline-edit" type="date" data-field="estimasi_tiba" value="${escAttr(p.estimasi_tiba)}"></td>
       <td>${p.tanggal_diterima || '-'}</td>
       <td>${p.lead_time_aktual!=null ? p.lead_time_aktual+' hari' : '-'}</td>
-      <td><select class="inline-edit" data-field="status">${selectOptionsHTML(PO_STATUS_OPTIONS, p.status)}</select></td>
+      <td><select class="inline-edit" data-field="status">${selectOptionsHTML(PO_STATUS_OPTIONS, p.status)}</select>${overdueBadge}</td>
       <td>${fmtRp(grandTotal)}</td>
       <td><div class="row-actions"><button type="button" onclick="openPoModal('${p.po_id}')">Edit</button><button type="button" class="del" onclick="deletePoConfirm('${p.po_id}')">Hapus</button></div></td>
     </tr>`;
@@ -1035,6 +1049,9 @@ function avgLeadTimeForModel(model){
 function fmtDateShort(d){
   return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
 }
+function toISODateStr(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 function renderRestockForecast(){
   const today = new Date(REF_TODAY_STR);
@@ -1071,6 +1088,9 @@ function renderRestockForecast(){
       if(r.daysLeft<=7) urgencyClass='row-critical';
       else if(r.daysLeft<=14) urgencyClass='row-warning';
     }
+    // Kalau sudah "Sekarang!" (order date proyeksi ada di masa lalu), isi form dengan
+    // tanggal hari ini, bukan tanggal proyeksi yang sudah lewat.
+    const orderDateStr = toISODateStr((r.orderDate && !r.orderUrgent) ? r.orderDate : today);
     return `<tr class="${urgencyClass}">
       <td>${r.model}</td>
       <td>${r.stok}</td>
@@ -1079,9 +1099,29 @@ function renderRestockForecast(){
       <td>${r.stockoutDate ? fmtDateShort(r.stockoutDate) : '-'}</td>
       <td>${r.orderDate ? (r.orderUrgent ? '<b style="color:var(--danger)">Sekarang!</b>' : fmtDateShort(r.orderDate)) : '-'}</td>
       <td><b>${r.suggestedQty}</b> unit</td>
+      <td><div class="row-actions"><button type="button" onclick="openPoModalFromForecast('${r.model}', ${r.suggestedQty || 1}, '${orderDateStr}')">+ Buat PO</button></div></td>
     </tr>`;
-  }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);">Semua model dalam kondisi aman, tidak ada yang perlu direstock dalam waktu dekat.</td></tr>';
+  }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);">Semua model dalam kondisi aman, tidak ada yang perlu direstock dalam waktu dekat.</td></tr>';
 }
+
+// Prefill modal Tambah PO dari satu baris Prediksi Restock, supaya tidak perlu ketik ulang
+// model/qty/tanggal yang sudah dihitung di tabel forecast. Supplier & gudang tujuan diambil
+// dari PO model yang sama paling baru (kalau ada) sebagai tebakan awal, tetap bisa diedit.
+function openPoModalFromForecast(model, qty, orderDateStr){
+  openPoModal();
+  document.getElementById('poFModel').value = model;
+  document.getElementById('poFQty').value = qty;
+  document.getElementById('poFTglOrder').value = orderDateStr;
+  const leadTime = Math.round(avgLeadTimeForModel(model));
+  const est = new Date(orderDateStr); est.setDate(est.getDate() + leadTime);
+  document.getElementById('poFEstTiba').value = toISODateStr(est);
+  const lastPo = purchaseOrders.filter(p=>p.model===model).sort((a,b)=> new Date(b.tanggal_order) - new Date(a.tanggal_order))[0];
+  if(lastPo){
+    document.getElementById('poFSupplier').value = lastPo.supplier || '';
+    document.getElementById('poFGudang').value = lastPo.gudang_tujuan || '';
+  }
+}
+window.openPoModalFromForecast = openPoModalFromForecast;
 
 // ---------- Supplier performance ----------
 // Total Item & Nilai Beli menjumlahkan 4 kategori (Unit iPhone per-unit, Dusbox/Aksesoris/
