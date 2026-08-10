@@ -38,11 +38,11 @@ function buildCode128Elements(digits){
   return elements;
 }
 
-function drawBarcode(svg, digits){
+function drawBarcode(svg, digits, doc){
   while(svg.firstChild) svg.removeChild(svg.firstChild);
   if(!/^\d{15}$/.test(digits)) return;
   const elements = buildCode128Elements(digits);
-  renderBarElements(svg, elements);
+  renderBarElements(svg, elements, doc);
 }
 
 // General Code128 (Code Set B) encoder — any printable ASCII text (letters, digits,
@@ -76,7 +76,7 @@ function buildCode128GeneralElements(text){
   return elements;
 }
 
-function drawBarcodeGeneral(svg, text){
+function drawBarcodeGeneral(svg, text, doc){
   while(svg.firstChild) svg.removeChild(svg.firstChild);
   const clean = String(text || '').trim();
   if(!clean) return;
@@ -85,10 +85,11 @@ function drawBarcodeGeneral(svg, text){
     if(c < 32 || c > 126) return; // unsupported character for Code128B — skip drawing
   }
   const elements = buildCode128GeneralElements(clean);
-  renderBarElements(svg, elements);
+  renderBarElements(svg, elements, doc);
 }
 
-function renderBarElements(svg, elements){
+function renderBarElements(svg, elements, doc){
+  doc = doc || document;
   const totalUnits = elements.reduce((sum, el) => sum + el.units, 0);
   const H = 40;
   svg.setAttribute('viewBox', `0 0 ${totalUnits} ${H}`);
@@ -96,7 +97,7 @@ function renderBarElements(svg, elements){
   let x = 0;
   for(const el of elements){
     if(el.bar){
-      const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      const rect = doc.createElementNS('http://www.w3.org/2000/svg','rect');
       rect.setAttribute('x', x);
       rect.setAttribute('y', 0);
       rect.setAttribute('width', el.units);
@@ -428,10 +429,11 @@ function clearAll(){
   saveToStorage();
 }
 
-function makeStickerNode(item, forPrint){
-  if(item.type === 'flash') return makeFlashStickerNode(item, forPrint);
+function makeStickerNode(item, forPrint, doc){
+  doc = doc || document;
+  if(item.type === 'flash') return makeFlashStickerNode(item, forPrint, doc);
 
-  const el = document.createElement('div');
+  const el = doc.createElement('div');
   el.className = 'sticker';
   const isSparepart = item.type === 'sparepart';
   const line1 = isSparepart ? item.namaPart : item.model;
@@ -452,13 +454,14 @@ function makeStickerNode(item, forPrint){
     </div>
   `;
   const svg = el.querySelector('svg');
-  if(isSparepart) drawBarcodeGeneral(svg, item.kode);
-  else drawBarcode(svg, item.imei);
+  if(isSparepart) drawBarcodeGeneral(svg, item.kode, doc);
+  else drawBarcode(svg, item.imei, doc);
   return el;
 }
 
-function makeFlashStickerNode(item, forPrint){
-  const el = document.createElement('div');
+function makeFlashStickerNode(item, forPrint, doc){
+  doc = doc || document;
+  const el = doc.createElement('div');
   el.className = 'sticker-flash';
   el.innerHTML = `
     ${forPrint ? '' : `<button class="remove-btn" onclick="stkApp.removeItem(${item.id})">&times;</button>`}
@@ -475,7 +478,7 @@ function makeFlashStickerNode(item, forPrint){
       <div>${escapeHtml(formatTanggalShort(item.tanggal))}</div>
     </div>
   `;
-  drawBarcode(el.querySelector('svg'), item.imei);
+  drawBarcode(el.querySelector('svg'), item.imei, doc);
   return el;
 }
 
@@ -666,30 +669,70 @@ function markAllAsExisting(){
   saveToStorage();
 }
 
-// renderList() baru saja membangun ratusan node baru (lembar stiker + barcode SVG) yang
-// sebelumnya tidak pernah tampil di layar (cuma ada di context "@media print"). Kalau
-// window.print() dipanggil PERSIS di baris berikutnya, browser kadang belum sempat menghitung
-// layout/paint untuk elemen-elemen itu, sehingga hasil cetak/preview kelihatan kosong padahal
-// datanya sudah ada di DOM — ini kebalikan dari mencetak via Ctrl+P manual (yang selalu bekerja
-// karena baru dijalankan SETELAH browser sempat menggambar semuanya). requestAnimationFrame
-// dobel memaksa menunggu sampai minimal satu siklus render/paint selesai duluan.
-function printAfterRender(){
-  requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+// Pendekatan lama (sembunyikan sisa halaman dashboard lewat @media print, print() di halaman
+// yang sama) ternyata rapuh di sebagian browser — window.print() bisa menghasilkan preview/PDF
+// yang benar-benar kosong meskipun data sudah pasti ada di DOM (sudah diverifikasi: konten ada,
+// class/display sudah benar, bahkan window.print() manual dari Console pun tetap kosong).
+// Solusinya: bikin jendela baru yang isinya CUMA lembar stiker (tanpa dashboard di sekitarnya
+// sama sekali), print dari jendela bersih itu. Jauh lebih sedikit yang bisa salah.
+function openPrintWindow(printItems, mode){
+  if(!printItems.length) return;
+  const printWin = window.open('', '_blank');
+  if(!printWin){
+    alert('Browser memblokir pembukaan jendela print. Izinkan pop-up untuk situs ini (biasanya ada ikon di address bar), lalu coba lagi.');
+    return;
+  }
+  const doc = printWin.document;
+  doc.open();
+  doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cetak Stiker</title><link rel="stylesheet" href="/css/styles.css"></head><body id="stkRoot"></body></html>');
+  doc.close();
+
+  const paperKey = document.getElementById('stk_paperSize').value;
+  const paper = PAPER_SIZES[paperKey] || PAPER_SIZES.a4;
+  const pageStyle = doc.createElement('style');
+  pageStyle.textContent = `@page{ size:${paper.cssSize}; margin:${PAGE_MARGIN_MM}mm; }`;
+  doc.head.appendChild(pageStyle);
+
+  const isFlash = mode === 'flash';
+  const modeCols = isFlash ? 3 : PAGE_COLS;
+  const modeRows = isFlash ? 9 : 10;
+  const ITEMS_PER_PAGE = modeRows * modeCols;
+
+  for(let i = 0; i < printItems.length; i += ITEMS_PER_PAGE){
+    const pageItems = printItems.slice(i, i + ITEMS_PER_PAGE);
+    const pageEl = doc.createElement('div');
+    pageEl.className = 'print-page' + (isFlash ? ' mode-flash' : '');
+    for(const item of pageItems){
+      pageEl.appendChild(makeStickerNode(item, true, doc));
+    }
+    doc.body.appendChild(pageEl);
+  }
+
+  let printed = false;
+  const doPrint = () => {
+    if(printed) return;
+    printed = true;
+    try{ printWin.focus(); printWin.print(); }catch(e){ /* jendela mungkin sudah ditutup user */ }
+  };
+  if(printWin.document.readyState === 'complete'){
+    requestAnimationFrame(() => requestAnimationFrame(doPrint));
+  }else{
+    printWin.addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame(doPrint)));
+    setTimeout(doPrint, 800); // jaga-jaga kalau event load tidak pernah fire
+  }
 }
 
 function printAll(){
   const printItems = getPrintScopeItems();
   if(printItems.length === 0){ alert('Tidak ada data untuk dicetak pada cakupan ini.'); return; }
-  renderList();
-  printAfterRender();
+  openPrintWindow(printItems, currentMode);
 }
 
 function exportPdf(){
   const printItems = getPrintScopeItems();
   if(printItems.length === 0){ alert('Tidak ada data untuk dicetak pada cakupan ini.'); return; }
-  renderList();
   alert('Pada kotak dialog cetak yang muncul, pilih tujuan "Simpan sebagai PDF" (Save as PDF). Set Margins ke "None" dan matikan "Headers and footers" di "More settings" supaya ruang cetak terpakai maksimal.');
-  printAfterRender();
+  openPrintWindow(printItems, currentMode);
 }
 
 function exportExcel(){
