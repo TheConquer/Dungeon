@@ -27,4 +27,19 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Backfill riwayat historis (mis. dari spreadsheet lama) — beda dari POST '/' biasa, endpoint ini
+// TIDAK menyesuaikan qty/cabang item (lihat catatan di model importHistory), khusus dipakai saat
+// qty saat ini sudah benar dari sumber lain (mis. import Stok Akhir) dan baris-baris ini murni
+// arsip riwayat tanggal/tujuan.
+router.post('/import-history', asyncHandler(async (req, res) => {
+  const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+  const result = await model.importHistory(rows);
+  logSafe({
+    modul: MODUL, aksi: 'import',
+    ringkasan: `Import riwayat historis: ${rows.length} baris`,
+    aktor: req.session && req.session.username,
+  });
+  res.json(result);
+}));
+
 module.exports = router;

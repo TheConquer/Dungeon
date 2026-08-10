@@ -73,6 +73,33 @@ async function create(data) {
   }).then(getById);
 }
 
+// Backfill riwayat historis (mis. dari spreadsheet lama) TANPA menyesuaikan qty/cabang item —
+// dipakai saat qty saat ini sudah diisi manual/lewat import terpisah (mis. "Stok Akhir" dari
+// sheet lama), jadi transaksi historis ini murni catatan, bukan sumber kebenaran qty seperti
+// create(). CATATAN: karena itu, remove() pada baris hasil import ini TIDAK akan membalik qty
+// item dengan benar (tidak ada apa-apa untuk dibalik) — baris seperti ini sebaiknya tidak dihapus
+// dari UI, cukup dibiarkan sebagai arsip riwayat.
+async function importHistory(rows) {
+  return withTransaction(async (client) => {
+    let inserted = 0;
+    let skipped = 0;
+    for (const r of rows) {
+      if (!r.tanggal || !r.kategori || !r.sku_id || !['Masuk', 'Keluar', 'Pindah Cabang'].includes(r.tipe)) {
+        skipped++;
+        continue;
+      }
+      const id = await nextStockTrxId(client);
+      await client.query(
+        `INSERT INTO stock_transactions (id, kategori, sku_id, nama_item, tipe, qty, tujuan, keterangan, tanggal)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [id, r.kategori, r.sku_id, r.nama_item || null, r.tipe, Number(r.qty) || 0, r.tujuan || null, r.keterangan || null, r.tanggal]
+      );
+      inserted++;
+    }
+    return { inserted, skipped };
+  });
+}
+
 // Hapus transaksi = koreksi salah catat, jadi efeknya ke qty/cabang item juga dibalik supaya
 // tetap satu sumber kebenaran (bukan cuma menghapus baris riwayat tapi qty-nya nyangkut).
 async function remove(id) {
@@ -90,4 +117,4 @@ async function remove(id) {
   });
 }
 
-module.exports = { list, getById, create, remove };
+module.exports = { list, getById, create, remove, importHistory };
