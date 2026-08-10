@@ -544,7 +544,7 @@
       display:flex;
       flex-flow:row wrap;
       align-content:flex-start;
-      width:160mm;
+      width:150mm;
       margin:0 auto;
       page-break-after: always;
       break-after: page;
@@ -552,21 +552,21 @@
 #stkRoot .print-page.mode-flash{ width:180mm; }
 #stkRoot .print-page:last-child{ page-break-after: auto; break-after: auto; }
 #stkRoot .print-page .sticker{
-      flex:0 0 40mm;
-      width:40mm; height:20mm;
+      flex:0 0 50mm;
+      width:50mm; height:25mm;
       box-shadow:none;
       border:1px dashed #d0d0d0;
-      padding:2.2mm 2.4mm 1.8mm;
+      padding:2.8mm 3mm 2.2mm;
       break-inside:avoid;
       page-break-inside:avoid;
     }
-#stkRoot .print-page .sticker .top-row{ gap:0.3mm; padding-right:5mm; }
-#stkRoot .print-page .sticker .logo-badge{ top:0.8mm; right:0.8mm; width:4.5mm; height:4.5mm; }
-#stkRoot .print-page .sticker .model{ font-size:8.5px; }
-#stkRoot .print-page .sticker .specs{ font-size:8.5px; }
-#stkRoot .print-page .sticker .imei-line{ font-size:8.5px; }
-#stkRoot .print-page .sticker .brandmark{ font-size:8.5px; }
-#stkRoot .print-page .sticker svg{ height:6mm; }
+#stkRoot .print-page .sticker .top-row{ gap:0.4mm; padding-right:6.3mm; }
+#stkRoot .print-page .sticker .logo-badge{ top:1mm; right:1mm; width:5.6mm; height:5.6mm; }
+#stkRoot .print-page .sticker .model{ font-size:10.5px; }
+#stkRoot .print-page .sticker .specs{ font-size:10.5px; }
+#stkRoot .print-page .sticker .imei-line{ font-size:10.5px; }
+#stkRoot .print-page .sticker .brandmark{ font-size:10.5px; }
+#stkRoot .print-page .sticker svg{ height:7.5mm; }
 #stkRoot .print-page .remove-btn{ display:none; }
 #stkRoot .print-page .badge-new{ display:none; }
 #stkRoot .print-page .sticker-flash{

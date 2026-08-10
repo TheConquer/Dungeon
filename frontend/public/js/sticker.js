@@ -500,8 +500,8 @@ const PAPER_SIZES = {
   f4: { width: 215, height: 330, cssSize: '215mm 330mm' }
 };
 const PAGE_MARGIN_MM = 5;
-const PAGE_COLS = 4;
-const ROW_HEIGHT_MM = 20;
+const PAGE_COLS = 3; // stiker 50mm x 3 kolom = 150mm, aman di bawah lebar cetak A4 (200mm) maupun F4 (205mm)
+const ROW_HEIGHT_MM = 25;
 const ROW_GAP_MM = 2;
 
 function computePageRows(paperKey){
@@ -632,7 +632,7 @@ function renderList(){
   const printItems = getPrintScopeItems();
 
   const modeCols = currentMode === 'flash' ? 3 : PAGE_COLS;
-  const modeRows = currentMode === 'flash' ? 9 : 13; // flash stickers are 60x30mm (taller), so fewer rows fit safely per page
+  const modeRows = currentMode === 'flash' ? 9 : 10; // stiker biasa 25mm/baris: 10 baris aman untuk A4 maupun F4 (halaman lebih pendek dari F4)
   const ITEMS_PER_PAGE = modeRows * modeCols;
 
   const printSheet = document.getElementById('stk_printSheet');
