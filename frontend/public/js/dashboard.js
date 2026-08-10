@@ -2342,21 +2342,52 @@ async function saveStokTrxForm(){
 }
 window.saveStokTrxForm = saveStokTrxForm;
 
-// ---------- Transaksi Item: Input Banyak (tempel dari Excel/Sheets) ----------
-// Format 5 kolom persis seperti kebiasaan pencatatan manual di spreadsheet lama:
-// Tanggal | Item (Model - Warna, dicocokkan ke Dusbox/Aksesoris/Sparepart) | Masuk | Keluar | Keterangan.
-// Beda dari import histori (dipakai sekali untuk migrasi data lama): tiap baris di sini dikirim
-// lewat endpoint /api/stock-transaksi biasa (live), jadi qty & lokasi tetap ikut ter-update normal.
-let stoktrxBulkParsed = [];
+// ---------- Transaksi Item: Catat Banyak Sekaligus ----------
+// Pola sama seperti "Tambah Banyak" di Unit Service (svcApp.addBulkRow/saveBulk): tiap baris
+// adalah <tr> dengan field-field bertanda class r-*, ditambah lewat tombol "+ Tambah Baris",
+// disimpan sekaligus lewat loop ke endpoint /api/stock-transaksi biasa (live, qty & lokasi
+// tetap ter-update normal seperti input satu-satu). Khusus Masuk/Keluar — Pindah Cabang tetap
+// lewat modal "Catat Transaksi" satu baris karena field-nya beda (cabang tujuan, bukan qty+tujuan).
+function stoktrxBulkRowTemplate(){
+  const today = REF_TODAY_STR;
+  return `
+    <tr>
+      <td><select class="r-kategori" onchange="stoktrxBulkRowKategoriChanged(this)">
+        <option value="Dusbox">Dusbox</option><option value="Aksesoris">Aksesoris</option><option value="Sparepart">Sparepart</option>
+      </select></td>
+      <td><select class="r-sku" style="min-width:180px;"></select></td>
+      <td><select class="r-tipe"><option value="Masuk">Masuk</option><option value="Keluar">Keluar</option></select></td>
+      <td><input type="number" class="r-qty" min="1" step="1" style="width:70px;"></td>
+      <td><input type="date" class="r-tanggal" value="${today}"></td>
+      <td><input type="text" class="r-tujuan" placeholder="Tujuan/Sumber"></td>
+      <td><input type="text" class="r-keterangan" placeholder="-"></td>
+      <td><button class="del" type="button" onclick="this.closest('tr').remove()">Hapus</button></td>
+    </tr>
+  `;
+}
+
+function stoktrxBulkRowKategoriChanged(selectEl){
+  const row = selectEl.closest('tr');
+  const cfg = STOCK_CATEGORY_CONFIG[selectEl.value.toLowerCase()];
+  const arr = cfg ? cfg.getArr() : [];
+  const skuSel = row.querySelector('.r-sku');
+  skuSel.innerHTML = arr.map(d=>`<option value="${d.sku_id}">${d.jenis}${d.kompatibel_model ? ' - '+d.kompatibel_model : ''} (sisa ${d.qty})</option>`).join('')
+    || '<option value="">(belum ada item)</option>';
+}
+window.stoktrxBulkRowKategoriChanged = stoktrxBulkRowKategoriChanged;
+
+function addStoktrxBulkRow(){
+  const tbody = document.getElementById('stoktrxBulkBody');
+  tbody.insertAdjacentHTML('beforeend', stoktrxBulkRowTemplate());
+  const row = tbody.lastElementChild;
+  stoktrxBulkRowKategoriChanged(row.querySelector('.r-kategori'));
+}
+window.addStoktrxBulkRow = addStoktrxBulkRow;
 
 function openStokTrxBulkModal(){
-  document.getElementById('stoktrxBulkKategori').value = 'Dusbox';
-  document.getElementById('stoktrxBulkPaste').value = '';
-  document.getElementById('stoktrxBulkPreviewTbody').innerHTML = '';
-  document.getElementById('stoktrxBulkPreviewInfo').textContent = '';
+  document.getElementById('stoktrxBulkBody').innerHTML = '';
   document.getElementById('stoktrxBulkProgress').textContent = '';
-  document.getElementById('stoktrxBulkSaveBtn').disabled = true;
-  stoktrxBulkParsed = [];
+  addStoktrxBulkRow();
   document.getElementById('stoktrxBulkModalOverlay').classList.add('open');
 }
 window.openStokTrxBulkModal = openStokTrxBulkModal;
@@ -2366,100 +2397,50 @@ function closeStokTrxBulkModal(){
 }
 window.closeStokTrxBulkModal = closeStokTrxBulkModal;
 
-function parseBulkTanggal(s){
-  s = (s||'').trim();
-  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
-  if(m) return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
-  return null;
-}
-
-function resolveStoktrxItemText(kategori, text){
-  const cfg = STOCK_CATEGORY_CONFIG[kategori.toLowerCase()];
-  if(!cfg) return null;
-  const needle = (text||'').trim().toLowerCase();
-  if(!needle) return null;
-  const arr = cfg.getArr();
-  return arr.find(d=>d.sku_id.toLowerCase()===needle)
-    || arr.find(d=>`${d.jenis} - ${d.kompatibel_model||''}`.trim().toLowerCase()===needle)
-    || arr.find(d=>d.jenis.toLowerCase()===needle && !d.kompatibel_model)
-    || null;
-}
-
-function previewStoktrxBulk(){
-  const kategori = document.getElementById('stoktrxBulkKategori').value;
-  const raw = document.getElementById('stoktrxBulkPaste').value;
-  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
-
-  stoktrxBulkParsed = lines.map(line=>{
-    const cols = line.split('\t');
-    const tanggalRaw = cols[0] || '';
-    const itemText = (cols[1] || '').trim();
-    const masuk = (cols[2] || '').trim();
-    const keluar = (cols[3] || '').trim();
-    const keterangan = (cols[4] || '').trim();
-
-    const tanggal = parseBulkTanggal(tanggalRaw);
-    let tipe = null, qty = 0;
-    if(masuk && parseInt(masuk,10) > 0){ tipe = 'Masuk'; qty = parseInt(masuk,10); }
-    else if(keluar && parseInt(keluar,10) > 0){ tipe = 'Keluar'; qty = parseInt(keluar,10); }
-
-    const item = resolveStoktrxItemText(kategori, itemText);
-
-    let status = 'ok';
-    if(!tanggal) status = 'Tanggal tidak valid';
-    else if(!tipe) status = 'Kolom Masuk/Keluar kosong';
-    else if(!item) status = 'Item tidak ditemukan di ' + kategori;
-    else if(tipe==='Keluar' && qty > item.qty) status = `Stok tidak cukup (tersedia ${item.qty})`;
-
-    return { kategori, tanggal, tanggalRaw, itemText, tipe, qty, keterangan, item, valid: status==='ok', status };
-  });
-
-  const validCount = stoktrxBulkParsed.filter(r=>r.valid).length;
-  document.getElementById('stoktrxBulkPreviewInfo').textContent =
-    `${stoktrxBulkParsed.length} baris terbaca — ${validCount} valid, ${stoktrxBulkParsed.length-validCount} bermasalah.`;
-  document.getElementById('stoktrxBulkPreviewTbody').innerHTML = stoktrxBulkParsed.map(r=>`
-    <tr style="${r.valid?'':'background:rgba(239,68,68,.08);'}">
-      <td>${r.tanggal || r.tanggalRaw}</td>
-      <td>${escAttr(r.itemText)}</td>
-      <td>${r.tipe || '-'}</td>
-      <td>${r.qty || '-'}</td>
-      <td>${escAttr(r.keterangan)}</td>
-      <td>${r.valid ? '✅ OK' : '⚠️ '+r.status}</td>
-    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Belum ada data ditempel.</td></tr>';
-
-  document.getElementById('stoktrxBulkSaveBtn').disabled = validCount===0;
-}
-window.previewStoktrxBulk = previewStoktrxBulk;
-
 async function saveStoktrxBulk(){
-  const rows = stoktrxBulkParsed.filter(r=>r.valid);
-  if(!rows.length) return;
+  const rows = [...document.querySelectorAll('#stoktrxBulkBody tr')].map(row=>({
+    kategori: row.querySelector('.r-kategori').value,
+    sku_id: row.querySelector('.r-sku').value,
+    tipe: row.querySelector('.r-tipe').value,
+    qty: parseInt(row.querySelector('.r-qty').value, 10) || 0,
+    tanggal: row.querySelector('.r-tanggal').value,
+    tujuan: row.querySelector('.r-tujuan').value.trim(),
+    keterangan: row.querySelector('.r-keterangan').value.trim(),
+  })).filter(r=>r.sku_id && r.qty>0 && r.tanggal);
+
+  if(!rows.length){ alert('Isi minimal satu baris dengan Item, Qty, dan Tanggal.'); return; }
+
   const btn = document.getElementById('stoktrxBulkSaveBtn');
   const progressEl = document.getElementById('stoktrxBulkProgress');
   btn.disabled = true;
-  let ok = 0, fail = 0;
+  let ok = 0; const errors = [];
 
   for(const [idx, r] of rows.entries()){
     progressEl.textContent = `Menyimpan ${idx+1} dari ${rows.length}...`;
     try{
       const res = await fetch('/api/stock-transaksi', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ kategori: r.kategori, sku_id: r.item.sku_id, tipe: r.tipe, qty: r.qty, tanggal: r.tanggal, tujuan: r.keterangan || r.tipe, keterangan: r.keterangan })
+        body: JSON.stringify({ kategori: r.kategori, sku_id: r.sku_id, tipe: r.tipe, qty: r.qty, tanggal: r.tanggal, tujuan: r.tujuan || r.tipe, keterangan: r.keterangan })
       });
-      if(!res.ok) throw new Error();
+      if(!res.ok){
+        const body = await res.json().catch(()=>({}));
+        throw new Error(body.error || `status ${res.status}`);
+      }
       ok++;
-    }catch(e){ fail++; }
+    }catch(e){ errors.push(`Baris ${idx+1}: ${e.message}`); }
   }
 
   await loadStockTransaksiData();
-  await refreshStockCategoryData(document.getElementById('stoktrxBulkKategori').value);
-  progressEl.textContent = `Selesai: ${ok} tersimpan, ${fail} gagal.`;
+  const kategoriTouched = [...new Set(rows.map(r=>r.kategori))];
+  for(const k of kategoriTouched) await refreshStockCategoryData(k);
   renderEverything();
-  if(fail===0){
+  btn.disabled = false;
+
+  if(!errors.length){
+    progressEl.textContent = `Selesai: ${ok} baris tersimpan.`;
     setTimeout(closeStokTrxBulkModal, 1200);
   }else{
-    btn.disabled = false;
+    progressEl.innerHTML = `${ok} baris tersimpan, ${errors.length} gagal:<br>` + errors.map(e=>escAttr(e)).join('<br>');
   }
 }
 window.saveStoktrxBulk = saveStoktrxBulk;

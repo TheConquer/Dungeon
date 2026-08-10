@@ -393,7 +393,7 @@
       <div class="btn-row" style="margin-bottom:10px;justify-content:space-between;">
         <h2 style="margin:0;">Riwayat Transaksi <span class="count" id="stoktrxTableCount"></span></h2>
         <div class="btn-row" style="margin-bottom:0;">
-          <button class="btn btn-outline" type="button" onclick="openStokTrxBulkModal()">📋 Input Banyak (Tempel dari Excel)</button>
+          <button class="btn btn-outline" type="button" onclick="openStokTrxBulkModal()">📋 Catat Banyak Sekaligus</button>
           <button class="btn" type="button" onclick="openStokTrxModal()">+ Catat Transaksi</button>
         </div>
       </div>
@@ -1583,37 +1583,22 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
   </div>
 
   <div class="dash-modal-overlay" id="stoktrxBulkModalOverlay">
-    <div class="dash-modal" style="max-width:720px;">
-      <h2>📋 Input Banyak Transaksi (Tempel dari Excel)</h2>
-      <div class="dash-field-row">
-        <div class="dash-field">
-          <label>Kategori (berlaku untuk semua baris di bawah)</label>
-          <select id="stoktrxBulkKategori">
-            <option value="Dusbox">Dusbox</option>
-            <option value="Aksesoris">Aksesoris</option>
-            <option value="Sparepart">Sparepart</option>
-          </select>
-        </div>
-      </div>
-      <div class="dash-field">
-        <label>Tempel data di sini <span style="color:var(--muted);font-weight:400;">(5 kolom: Tanggal, Item/Model - Warna, Masuk, Keluar, Keterangan — copy langsung dari Excel/Sheets, salah satu kolom Masuk/Keluar boleh kosong)</span></label>
-        <textarea id="stoktrxBulkPaste" rows="8" placeholder="24/07/2026&#9;iPhone 13 - Pink&#9;&#9;2&#9;TIMOHO
-25/07/2026&#9;iPhone 12 - Black&#9;20&#9;&#9;Restock dari AHAU" style="width:100%;font-family:monospace;font-size:12px;"></textarea>
+    <div class="dash-modal" style="max-width:920px;">
+      <h2>📋 Catat Banyak Transaksi Sekaligus</h2>
+      <p style="color:var(--muted);font-size:11px;margin:-6px 0 12px;">Isi tiap baris (Kategori menentukan pilihan Item), klik "+ Tambah Baris" untuk baris berikutnya, lalu simpan semua sekaligus. Khusus Masuk/Keluar — untuk Pindah Cabang pakai tombol "+ Catat Transaksi" biasa.</p>
+      <div class="table-scroll" style="max-height:360px;">
+        <table>
+          <thead><tr><th>Kategori</th><th>Item</th><th>Tipe</th><th>Qty</th><th>Tanggal</th><th>Tujuan / Sumber</th><th>Keterangan</th><th></th></tr></thead>
+          <tbody id="stoktrxBulkBody"></tbody>
+        </table>
       </div>
       <div class="btn-row" style="margin:10px 0;">
-        <button class="btn btn-outline" type="button" onclick="previewStoktrxBulk()">🔎 Preview</button>
-      </div>
-      <div id="stoktrxBulkPreviewInfo" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></div>
-      <div class="table-scroll" style="max-height:300px;">
-        <table>
-          <thead><tr><th>Tanggal</th><th>Item</th><th>Tipe</th><th>Qty</th><th>Tujuan</th><th>Status</th></tr></thead>
-          <tbody id="stoktrxBulkPreviewTbody"></tbody>
-        </table>
+        <button class="btn btn-outline" type="button" onclick="addStoktrxBulkRow()">+ Tambah Baris</button>
       </div>
       <div id="stoktrxBulkProgress" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
       <div class="dash-modal-actions">
         <button class="btn btn-outline" type="button" onclick="closeStokTrxBulkModal()">Batal</button>
-        <button class="btn" type="button" id="stoktrxBulkSaveBtn" onclick="saveStoktrxBulk()" disabled>Simpan Semua Baris Valid</button>
+        <button class="btn" type="button" id="stoktrxBulkSaveBtn" onclick="saveStoktrxBulk()">Simpan Semua</button>
       </div>
     </div>
   </div>
