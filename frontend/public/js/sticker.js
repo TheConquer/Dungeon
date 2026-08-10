@@ -666,11 +666,22 @@ function markAllAsExisting(){
   saveToStorage();
 }
 
+// renderList() baru saja membangun ratusan node baru (lembar stiker + barcode SVG) yang
+// sebelumnya tidak pernah tampil di layar (cuma ada di context "@media print"). Kalau
+// window.print() dipanggil PERSIS di baris berikutnya, browser kadang belum sempat menghitung
+// layout/paint untuk elemen-elemen itu, sehingga hasil cetak/preview kelihatan kosong padahal
+// datanya sudah ada di DOM — ini kebalikan dari mencetak via Ctrl+P manual (yang selalu bekerja
+// karena baru dijalankan SETELAH browser sempat menggambar semuanya). requestAnimationFrame
+// dobel memaksa menunggu sampai minimal satu siklus render/paint selesai duluan.
+function printAfterRender(){
+  requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+}
+
 function printAll(){
   const printItems = getPrintScopeItems();
   if(printItems.length === 0){ alert('Tidak ada data untuk dicetak pada cakupan ini.'); return; }
   renderList();
-  window.print();
+  printAfterRender();
 }
 
 function exportPdf(){
@@ -678,7 +689,7 @@ function exportPdf(){
   if(printItems.length === 0){ alert('Tidak ada data untuk dicetak pada cakupan ini.'); return; }
   renderList();
   alert('Pada kotak dialog cetak yang muncul, pilih tujuan "Simpan sebagai PDF" (Save as PDF). Set Margins ke "None" dan matikan "Headers and footers" di "More settings" supaya ruang cetak terpakai maksimal.');
-  window.print();
+  printAfterRender();
 }
 
 function exportExcel(){
