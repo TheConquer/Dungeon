@@ -347,6 +347,7 @@ function addSingleFlash(){
   const nama = document.getElementById('stk_flNama').value.trim() || 'Produk';
   const imei = cleanImei(document.getElementById('stk_flImei').value);
   const minus = document.getElementById('stk_flMinus').value.trim();
+  const tanggal = formatTanggal(document.getElementById('stk_flTanggal').value);
   const errImei = validateImei(imei);
   if(!errImei && flashImeiSet.has(imei)){
     document.getElementById('stk_flImeiErr').textContent = 'IMEI ini sudah ada di daftar flashsale';
@@ -354,7 +355,7 @@ function addSingleFlash(){
   }
   document.getElementById('stk_flImeiErr').textContent = errImei;
   if(errImei) return;
-  items.push({ id: idCounter++, type: 'flash', namaProduk: nama, imei, minus, batch: 'baru' });
+  items.push({ id: idCounter++, type: 'flash', namaProduk: nama, imei, minus, tanggal, batch: 'baru' });
   flashImeiSet.add(imei);
   renderList();
   saveToStorage();
@@ -367,7 +368,7 @@ function addRowsFlash(rows, defaultBatch){
     const imei = cleanImei(row.imei);
     if(validateImei(imei)){ skipped++; continue; }
     if(flashImeiSet.has(imei)){ duplicate++; continue; }
-    items.push({ id: idCounter++, type: 'flash', namaProduk: row.nama || 'Produk', imei, minus: String(row.minus || '').trim(), batch: batchTag });
+    items.push({ id: idCounter++, type: 'flash', namaProduk: row.nama || 'Produk', imei, minus: String(row.minus || '').trim(), tanggal: String(row.tanggal || '').trim(), batch: batchTag });
     flashImeiSet.add(imei);
     added++;
   }
@@ -382,7 +383,7 @@ function addBatchFromTextareaFlash(){
   for(const line of lines){
     const parts = parseLine(line);
     if(parts.length < 2){ malformed++; continue; }
-    rows.push({ nama: parts[0], imei: parts[1], minus: parts[2] || '' });
+    rows.push({ nama: parts[0], imei: parts[1], minus: parts[2] || '', tanggal: parts[3] || '' });
   }
   const { added, skipped, duplicate } = addRowsFlash(rows, 'baru');
   const parts2 = [];
@@ -471,6 +472,7 @@ function makeFlashStickerNode(item, forPrint){
     <div class="flash-barcode-row"><svg xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div class="flash-footer">
       <div>${escapeHtml(item.imei)}</div>
+      <div>${escapeHtml(formatTanggalShort(item.tanggal))}</div>
     </div>
   `;
   drawBarcode(el.querySelector('svg'), item.imei);
@@ -685,7 +687,7 @@ function exportExcel(){
   const headerMap = {
     imei: ['Model', 'Kapasitas', 'Warna', 'IMEI', 'Tanggal Masuk'],
     sparepart: ['Nama Sparepart', 'Kode/SKU', 'Tanggal Masuk'],
-    flash: ['Nama Produk', 'IMEI', 'Minus/Kekurangan'],
+    flash: ['Nama Produk', 'IMEI', 'Minus/Kekurangan', 'Tanggal Masuk'],
   };
   const headers = headerMap[currentMode] || headerMap.imei;
   let rowsHtml = '<tr>' + headers.map(h => `<th style="background:#141414;color:#fff;padding:4px 8px;">${escapeHtml(h)}</th>`).join('') + '</tr>';
@@ -701,6 +703,7 @@ function exportExcel(){
         + `<td style="padding:4px 8px;">${escapeHtml(it.namaProduk)}</td>`
         + `<td style="padding:4px 8px;mso-number-format:'\\@';">${escapeHtml(it.imei)}</td>`
         + `<td style="padding:4px 8px;">${escapeHtml(it.minus || '')}</td>`
+        + `<td style="padding:4px 8px;mso-number-format:'\\@';">${escapeHtml(it.tanggal || '')}</td>`
         + '</tr>';
     } else {
       rowsHtml += '<tr>'

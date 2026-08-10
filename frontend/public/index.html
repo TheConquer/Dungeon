@@ -1187,6 +1187,10 @@ Konektor Charging iPhone XR	CHG-IPXR	17-07-2026"></textarea>
         <label for="stk_flMinus">Minus / Kekurangan (opsional)</label>
         <input id="stk_flMinus" value="LCD NOTIF" maxlength="40">
       </div>
+      <div class="field">
+        <label for="stk_flTanggal">Tanggal Masuk</label>
+        <input id="stk_flTanggal" type="date">
+      </div>
       <div class="actions">
         <button onclick="stkApp.addSingleFlash()">+ Tambah ke Daftar</button>
       </div>
@@ -1195,13 +1199,13 @@ Konektor Charging iPhone XR	CHG-IPXR	17-07-2026"></textarea>
     <div class="panel hidden" id="stk_panelBatchFlash">
       <p class="panel-title">Tempel Langsung dari Excel</p>
       <div class="field">
-        <label for="stk_flBatchInput">Blok kolom di Excel (Nama, IMEI, Minus) lalu Ctrl+C, paste di sini</label>
-        <textarea id="stk_flBatchInput" placeholder="IPHONE 13 128GB MIDNIGHT	356789104567890	LCD NOTIF
-IPHONE 12 128GB WHITE	350148175724726	BATERAI 82%
-IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN"></textarea>
+        <label for="stk_flBatchInput">Blok kolom di Excel (Nama, IMEI, Minus, Tanggal) lalu Ctrl+C, paste di sini</label>
+        <textarea id="stk_flBatchInput" placeholder="IPHONE 13 128GB MIDNIGHT	356789104567890	LCD NOTIF	21-07-2026
+IPHONE 12 128GB WHITE	350148175724726	BATERAI 82%	21-07-2026
+IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN	17-07-2026"></textarea>
       </div>
       <div class="hint">
-        Tidak perlu header. Kolom: <b>Nama Produk | IMEI | Minus</b> (Minus opsional — kosongkan kalau tidak ada catatan), dipisah tab (paste dari Excel) atau <code>|</code>.
+        Tidak perlu header. Kolom: <b>Nama Produk | IMEI | Minus | Tanggal</b> (Minus &amp; Tanggal opsional — kosongkan kalau tidak ada), dipisah tab (paste dari Excel) atau <code>|</code>. Tanggal akan ditampilkan di stiker sebagai <b>tanggal masuk</b>.
       </div>
       <div class="imei-err" id="stk_flBatchErr"></div>
       <div class="actions">
