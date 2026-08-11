@@ -538,7 +538,7 @@
    tetap cukup lebar buat dipindai scanner walau labelnya sempit. Preview di layar dibuat dengan
    proporsi yang sama (skala px) supaya WYSIWYG dengan hasil cetaknya. */
 #stkRoot .sticker-sp{
-    width:210px; height:90px;
+    width:240px; height:120px;
     background:#fff;
     box-shadow:0 4px 12px rgba(20,20,20,.16);
     padding:6px 8px;
@@ -605,18 +605,18 @@
 #stkRoot .print-page .sticker-flash svg{ height:6mm; }
 #stkRoot .print-page .sticker-flash .flash-footer{ font-size:7px; padding:0.6mm 2.2mm 1mm; }
 #stkRoot .print-page .sticker-flash .logo-badge{ width:4mm; height:4mm; top:5.8mm; right:0.8mm; }
-#stkRoot .print-page.mode-sparepart{ width:175mm; }
+#stkRoot .print-page.mode-sparepart{ width:160mm; }
 #stkRoot .print-page .sticker-sp{
-      flex:0 0 35mm;
-      width:35mm; height:15mm;
+      flex:0 0 40mm;
+      width:40mm; height:20mm;
       box-shadow:none;
       border:1px dashed #d0d0d0;
-      padding:1mm 1.5mm;
+      padding:1.5mm 2mm;
       break-inside:avoid;
       page-break-inside:avoid;
     }
-#stkRoot .print-page .sticker-sp .sp-nama{ font-size:6.5px; }
-#stkRoot .print-page .sticker-sp .sp-barcode-row svg{ height:5mm; }
-#stkRoot .print-page .sticker-sp .sp-kode{ font-size:6.5px; }
+#stkRoot .print-page .sticker-sp .sp-nama{ font-size:7.5px; }
+#stkRoot .print-page .sticker-sp .sp-barcode-row svg{ height:6.5mm; }
+#stkRoot .print-page .sticker-sp .sp-kode{ font-size:7.5px; }
 @page{ size:A4; margin:5mm; }
 }

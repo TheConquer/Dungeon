@@ -538,7 +538,7 @@ const ROW_GAP_MM = 2;
 // ukuran fisik masing-masing jenis stiker (IMEI 50x25mm, Sparepart 15x35mm, Flash 60x30mm).
 function printLayoutForMode(mode){
   if(mode === 'flash') return { cols: 3, rows: 9, pageClass: 'mode-flash' };
-  if(mode === 'sparepart') return { cols: 5, rows: 18, pageClass: 'mode-sparepart' }; // 5x35mm=175mm, 18x15mm=270mm — aman di A4 & F4
+  if(mode === 'sparepart') return { cols: 4, rows: 13, pageClass: 'mode-sparepart' }; // 4x40mm=160mm, 13x20mm=260mm — aman di A4 & F4
   return { cols: PAGE_COLS, rows: 10, pageClass: '' };
 }
 
