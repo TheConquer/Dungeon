@@ -455,9 +455,8 @@ function makeStickerNode(item, forPrint, doc){
 }
 
 // Stiker Sparepart: desain terpisah dari IMEI (bukan dibagi lewat class .sticker yang sama) —
-// kebutuhan fisik label-nya beda (15mm x 35mm, sempit & memanjang, sesuai printer/tempat
-// tempel khusus sparepart), jadi barcode-nya diputar vertikal (rotate 90°) supaya tetap
-// cukup lebar buat dipindai scanner walau lebar labelnya cuma 15mm.
+// kebutuhan fisik label-nya beda: landscape 35mm x 15mm, barcode mendatar biasa (muat nyaman
+// karena sisi lebarnya 35mm, tidak perlu diputar seperti versi sempit-memanjang sebelumnya).
 function makeSparepartStickerNode(item, forPrint, doc){
   doc = doc || document;
   const el = doc.createElement('div');
@@ -466,7 +465,7 @@ function makeSparepartStickerNode(item, forPrint, doc){
     ${forPrint ? '' : `<button class="remove-btn" onclick="stkApp.removeItem(${item.id})">&times;</button>`}
     ${item.batch === 'baru' ? '<div class="badge-new">BARU</div>' : ''}
     <div class="sp-nama">${escapeHtml(item.namaPart)}</div>
-    <div class="sp-barcode-wrap"><svg xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="sp-barcode-row"><svg xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div class="sp-kode">${escapeHtml(item.kode)}</div>
   `;
   drawBarcodeGeneral(el.querySelector('svg'), item.kode, doc);
@@ -528,7 +527,7 @@ const ROW_GAP_MM = 2;
 // ukuran fisik masing-masing jenis stiker (IMEI 50x25mm, Sparepart 15x35mm, Flash 60x30mm).
 function printLayoutForMode(mode){
   if(mode === 'flash') return { cols: 3, rows: 9, pageClass: 'mode-flash' };
-  if(mode === 'sparepart') return { cols: 10, rows: 8, pageClass: 'mode-sparepart' }; // 10x15mm=150mm, 8x35mm=280mm — aman di A4 & F4
+  if(mode === 'sparepart') return { cols: 5, rows: 18, pageClass: 'mode-sparepart' }; // 5x35mm=175mm, 18x15mm=270mm — aman di A4 & F4
   return { cols: PAGE_COLS, rows: 10, pageClass: '' };
 }
 
