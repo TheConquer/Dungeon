@@ -76,7 +76,13 @@ function buildCode128GeneralElements(text){
   return elements;
 }
 
-function drawBarcodeGeneral(svg, text, doc){
+// minUnitMM (opsional): jamin lebar minimum per modul barcode (mm) SUPAYA TIDAK MENGECIL
+// otomatis kalau teksnya panjang. Tanpa ini, SVG cuma di-stretch via CSS (width:100%/90%) ke
+// lebar kontainer yang tetap — makin panjang kode/SKU-nya, makin banyak modul yang dipaksa
+// muat di lebar yang sama, hasilnya garis makin rapat/tipis sampai tidak kebaca scanner.
+// Dipakai khusus stiker Sparepart (kode/SKU-nya panjangnya bervariasi, beda dari IMEI yang
+// selalu pas 15 digit sehingga kerapatannya konsisten & sudah teruji di ukuran stiker itu).
+function drawBarcodeGeneral(svg, text, doc, minUnitMM){
   while(svg.firstChild) svg.removeChild(svg.firstChild);
   const clean = String(text || '').trim();
   if(!clean) return;
@@ -86,6 +92,11 @@ function drawBarcodeGeneral(svg, text, doc){
   }
   const elements = buildCode128GeneralElements(clean);
   renderBarElements(svg, elements, doc);
+  if(minUnitMM){
+    const totalUnits = elements.reduce((sum, el) => sum + el.units, 0);
+    svg.style.width = (totalUnits * minUnitMM) + 'mm';
+    svg.style.maxWidth = 'none';
+  }
 }
 
 function renderBarElements(svg, elements, doc){
@@ -468,7 +479,7 @@ function makeSparepartStickerNode(item, forPrint, doc){
     <div class="sp-barcode-row"><svg xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div class="sp-kode">${escapeHtml(item.kode)}</div>
   `;
-  drawBarcodeGeneral(el.querySelector('svg'), item.kode, doc);
+  drawBarcodeGeneral(el.querySelector('svg'), item.kode, doc, 0.2);
   return el;
 }
 
