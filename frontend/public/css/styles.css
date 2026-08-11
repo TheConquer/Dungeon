@@ -560,6 +560,17 @@
 @media print{
 #stkRoot .wrap{ display:none; }
 #stkRoot #stk_printSheet{ display:block; }
+/* Browser (Chrome) secara default TIDAK mencetak warna background/gambar kecuali dipaksa
+   lewat ini (atau user manual centang "Background graphics" di dialog print, yang gampang
+   kelewat) — tanpa ini pita hitam "FLASH SALE" dan badge "BARU" jadi putih polos saat dicetak.
+   Selector-nya .print-page (bukan #stk_printSheet) supaya tetap kepakai baik di lembar print
+   lama di halaman utama MAUPUN di jendela print terpisah (openPrintWindow di sticker.js, yang
+   isinya cuma <body id="stkRoot"><div class="print-page">...</div></body> tanpa #stk_printSheet). */
+#stkRoot .print-page, #stkRoot .print-page *{
+  -webkit-print-color-adjust:exact !important;
+  print-color-adjust:exact !important;
+  color-adjust:exact !important;
+}
 #stkRoot .print-page{
       display:flex;
       flex-flow:row wrap;
