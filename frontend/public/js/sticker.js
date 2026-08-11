@@ -432,30 +432,44 @@ function clearAll(){
 function makeStickerNode(item, forPrint, doc){
   doc = doc || document;
   if(item.type === 'flash') return makeFlashStickerNode(item, forPrint, doc);
+  if(item.type === 'sparepart') return makeSparepartStickerNode(item, forPrint, doc);
 
   const el = doc.createElement('div');
   el.className = 'sticker';
-  const isSparepart = item.type === 'sparepart';
-  const line1 = isSparepart ? item.namaPart : item.model;
-  const line2 = isSparepart ? '' : [item.kap, item.warna].filter(Boolean).join(' · ');
-  const footerCode = isSparepart ? item.kode : item.imei;
   el.innerHTML = `
     ${forPrint ? '' : `<button class="remove-btn" onclick="stkApp.removeItem(${item.id})">&times;</button>`}
     ${item.batch === 'baru' ? '<div class="badge-new">BARU</div>' : ''}
     <img class="logo-badge" src="${LOGO_DATA_URI}" alt="">
     <div class="top-row">
-      <div class="model">${escapeHtml(line1)}</div>
-      <div class="specs">${escapeHtml(line2)}</div>
+      <div class="model">${escapeHtml(item.model)}</div>
+      <div class="specs">${escapeHtml([item.kap, item.warna].filter(Boolean).join(' · '))}</div>
     </div>
     <div class="barcode-row"><svg xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div class="footer">
-      <div class="imei-line">${escapeHtml(footerCode)}</div>
+      <div class="imei-line">${escapeHtml(item.imei)}</div>
       <div class="brandmark">${escapeHtml(formatTanggalShort(item.tanggal))}</div>
     </div>
   `;
-  const svg = el.querySelector('svg');
-  if(isSparepart) drawBarcodeGeneral(svg, item.kode, doc);
-  else drawBarcode(svg, item.imei, doc);
+  drawBarcode(el.querySelector('svg'), item.imei, doc);
+  return el;
+}
+
+// Stiker Sparepart: desain terpisah dari IMEI (bukan dibagi lewat class .sticker yang sama) —
+// kebutuhan fisik label-nya beda (15mm x 35mm, sempit & memanjang, sesuai printer/tempat
+// tempel khusus sparepart), jadi barcode-nya diputar vertikal (rotate 90°) supaya tetap
+// cukup lebar buat dipindai scanner walau lebar labelnya cuma 15mm.
+function makeSparepartStickerNode(item, forPrint, doc){
+  doc = doc || document;
+  const el = doc.createElement('div');
+  el.className = 'sticker-sp';
+  el.innerHTML = `
+    ${forPrint ? '' : `<button class="remove-btn" onclick="stkApp.removeItem(${item.id})">&times;</button>`}
+    ${item.batch === 'baru' ? '<div class="badge-new">BARU</div>' : ''}
+    <div class="sp-nama">${escapeHtml(item.namaPart)}</div>
+    <div class="sp-barcode-wrap"><svg xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="sp-kode">${escapeHtml(item.kode)}</div>
+  `;
+  drawBarcodeGeneral(el.querySelector('svg'), item.kode, doc);
   return el;
 }
 
@@ -508,6 +522,15 @@ const PAGE_MARGIN_MM = 5;
 const PAGE_COLS = 3; // stiker 50mm x 3 kolom = 150mm, aman di bawah lebar cetak A4 (200mm) maupun F4 (205mm)
 const ROW_HEIGHT_MM = 25;
 const ROW_GAP_MM = 2;
+
+// Dipakai bersama oleh renderList() (lembar print di halaman utama) dan openPrintWindow()
+// (jendela print terpisah) supaya jumlah kolom/baris per halaman selalu konsisten dan sesuai
+// ukuran fisik masing-masing jenis stiker (IMEI 50x25mm, Sparepart 15x35mm, Flash 60x30mm).
+function printLayoutForMode(mode){
+  if(mode === 'flash') return { cols: 3, rows: 9, pageClass: 'mode-flash' };
+  if(mode === 'sparepart') return { cols: 10, rows: 8, pageClass: 'mode-sparepart' }; // 10x15mm=150mm, 8x35mm=280mm — aman di A4 & F4
+  return { cols: PAGE_COLS, rows: 10, pageClass: '' };
+}
 
 function computePageRows(paperKey){
   const paper = PAPER_SIZES[paperKey] || PAPER_SIZES.a4;
@@ -636,16 +659,15 @@ function renderList(){
   applyPaperSize();
   const printItems = getPrintScopeItems();
 
-  const modeCols = currentMode === 'flash' ? 3 : PAGE_COLS;
-  const modeRows = currentMode === 'flash' ? 9 : 10; // stiker biasa 25mm/baris: 10 baris aman untuk A4 maupun F4 (halaman lebih pendek dari F4)
-  const ITEMS_PER_PAGE = modeRows * modeCols;
+  const layout = printLayoutForMode(currentMode);
+  const ITEMS_PER_PAGE = layout.rows * layout.cols;
 
   const printSheet = document.getElementById('stk_printSheet');
   printSheet.innerHTML = '';
   for(let i = 0; i < printItems.length; i += ITEMS_PER_PAGE){
     const pageItems = printItems.slice(i, i + ITEMS_PER_PAGE);
     const pageEl = document.createElement('div');
-    pageEl.className = 'print-page' + (currentMode === 'flash' ? ' mode-flash' : '');
+    pageEl.className = 'print-page' + (layout.pageClass ? ' ' + layout.pageClass : '');
     for(const item of pageItems){
       pageEl.appendChild(makeStickerNode(item, true));
     }
@@ -693,15 +715,13 @@ function openPrintWindow(printItems, mode){
   pageStyle.textContent = `@page{ size:${paper.cssSize}; margin:${PAGE_MARGIN_MM}mm; }`;
   doc.head.appendChild(pageStyle);
 
-  const isFlash = mode === 'flash';
-  const modeCols = isFlash ? 3 : PAGE_COLS;
-  const modeRows = isFlash ? 9 : 10;
-  const ITEMS_PER_PAGE = modeRows * modeCols;
+  const layout = printLayoutForMode(mode);
+  const ITEMS_PER_PAGE = layout.rows * layout.cols;
 
   for(let i = 0; i < printItems.length; i += ITEMS_PER_PAGE){
     const pageItems = printItems.slice(i, i + ITEMS_PER_PAGE);
     const pageEl = doc.createElement('div');
-    pageEl.className = 'print-page' + (isFlash ? ' mode-flash' : '');
+    pageEl.className = 'print-page' + (layout.pageClass ? ' ' + layout.pageClass : '');
     for(const item of pageItems){
       pageEl.appendChild(makeStickerNode(item, true, doc));
     }

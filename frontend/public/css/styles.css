@@ -528,11 +528,31 @@
 #stkRoot .sticker .imei-line{ font-family:var(--mono); font-size:6.4px; letter-spacing:.03em; color:#111; white-space:nowrap; }
 #stkRoot .sticker .imei-line .lbl{ color:var(--muted); font-weight:600; margin-right:2px; }
 #stkRoot .sticker .brandmark{ font-family:var(--mono); font-size:6.4px; letter-spacing:.03em; color:#111; white-space:nowrap; flex:none; }
-#stkRoot .sticker .remove-btn, #stkRoot .sticker-flash .remove-btn{
+#stkRoot .sticker .remove-btn, #stkRoot .sticker-flash .remove-btn, #stkRoot .sticker-sp .remove-btn{
     position:absolute; top:2px; right:2px; width:14px; height:14px;
     border:none; background:var(--danger); color:#fff; font-size:10px; line-height:1;
     border-radius:50%; cursor:pointer; padding:0; flex:none; z-index:2;
   }
+/* Stiker Sparepart — desain terpisah dari IMEI (bukan cuma versi kecil dari .sticker), sesuai
+   kebutuhan khusus: fisik 15mm x 35mm (sempit & memanjang), barcode diputar vertikal supaya
+   tetap cukup lebar buat dipindai scanner walau labelnya sempit. Preview di layar dibuat dengan
+   proporsi yang sama (skala px) supaya WYSIWYG dengan hasil cetaknya. */
+#stkRoot .sticker-sp{
+    width:90px; height:210px;
+    background:#fff;
+    box-shadow:0 4px 12px rgba(20,20,20,.16);
+    padding:6px 4px;
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    position:relative; overflow:hidden;
+    animation:fadeSlideIn .3s var(--ease);
+    transition:transform .2s var(--ease), box-shadow .2s var(--ease);
+  }
+#stkRoot .sticker-sp:hover{ transform:translateY(-3px) scale(1.02); box-shadow:0 8px 22px rgba(59,130,246,.35); }
+#stkRoot .sticker-sp .sp-nama{ font-family:var(--mono); font-size:8px; font-weight:800; line-height:1.2; color:#141414; text-align:center; width:100%; max-height:28px; overflow:hidden; }
+#stkRoot .sticker-sp .sp-barcode-wrap{ position:relative; width:60px; height:130px; margin:0 auto; }
+#stkRoot .sticker-sp .sp-barcode-wrap svg{ position:absolute; top:50%; left:50%; width:130px; height:28px; transform:translate(-50%,-50%) rotate(90deg); display:block; }
+#stkRoot .sticker-sp .sp-kode{ font-family:var(--mono); font-size:8px; color:#111; text-align:center; width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
 #stkRoot .meta-note{ font-size:11px; color:var(--muted); line-height:1.65; }
 #stkRoot .meta-note b{ color:var(--ink); }
 #stkRoot .hidden{ display:none !important; }
@@ -585,5 +605,19 @@
 #stkRoot .print-page .sticker-flash svg{ height:6mm; }
 #stkRoot .print-page .sticker-flash .flash-footer{ font-size:7px; padding:0.6mm 2.2mm 1mm; }
 #stkRoot .print-page .sticker-flash .logo-badge{ width:4mm; height:4mm; top:5.8mm; right:0.8mm; }
+#stkRoot .print-page.mode-sparepart{ width:150mm; }
+#stkRoot .print-page .sticker-sp{
+      flex:0 0 15mm;
+      width:15mm; height:35mm;
+      box-shadow:none;
+      border:1px dashed #d0d0d0;
+      padding:1.2mm 0.6mm;
+      break-inside:avoid;
+      page-break-inside:avoid;
+    }
+#stkRoot .print-page .sticker-sp .sp-nama{ font-size:5px; max-height:5mm; }
+#stkRoot .print-page .sticker-sp .sp-barcode-wrap{ width:11mm; height:23mm; }
+#stkRoot .print-page .sticker-sp .sp-barcode-wrap svg{ width:23mm; height:5mm; }
+#stkRoot .print-page .sticker-sp .sp-kode{ font-size:5.5px; }
 @page{ size:A4; margin:5mm; }
 }
