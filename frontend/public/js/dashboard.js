@@ -556,6 +556,25 @@ function openServiceTicketFromUnit(imei){
 }
 window.openServiceTicketFromUnit = openServiceTicketFromUnit;
 
+// Tombol "🏷️ Stiker" di Data Unit — buka tab Stiker Barcode, isi form Tambah Satu Unit dengan
+// data unit ini (model+kapasitas+warna jadi satu nama produk, IMEI, tanggal masuk, status
+// jaringan) supaya tidak perlu ketik ulang manual. User tetap yang klik "+ Tambah ke Daftar"
+// sendiri (lihat & konfirmasi dulu sebelum benar-benar masuk daftar cetak).
+function openStickerFromUnit(imei){
+  const d = inventoryData.find(u=>u.imei===imei);
+  if(!d) return;
+  document.querySelector('#tabNav .tab-btn[data-tab="stiker"]').click();
+  if(window.stkApp && window.stkApp.prefillFromUnit){
+    window.stkApp.prefillFromUnit({
+      nama: [d.model, d.kapasitas, d.warna].filter(Boolean).join(' '),
+      imei: d.imei,
+      tanggalMasuk: d.tanggal_masuk,
+      statusJaringan: d.status_jaringan || 'All Provider',
+    });
+  }
+}
+window.openStickerFromUnit = openStickerFromUnit;
+
 function jumpToRetur(imei){
   document.querySelector('#tabNav .tab-btn[data-tab="returklaim"]').click();
   document.getElementById('rkSearch').value = imei;
@@ -575,6 +594,7 @@ function keterkaitanBadges(d){
 
 const UNIT_STATUS_OPTIONS = ['Ready Stock','Prioritas FIFO','Flash Sale','Trouble','Terjual'];
 const UNIT_REPORTQC_OPTIONS = ['Pending QC','Lolos QC','Gagal QC'];
+const UNIT_STATUSJARINGAN_OPTIONS = ['All Provider','WiFi Only','Beacukai'];
 function selectOptionsHTML(options, current){
   return options.map(o=>`<option value="${escAttr(o)}"${o===current?' selected':''}>${o}</option>`).join('');
 }
@@ -604,11 +624,12 @@ function renderTable(){
         ${auto?'<div style="color:var(--muted);font-size:10px;">(auto: '+es+')</div>':''}
       </td>
       <td><select class="inline-edit" data-field="report_qc">${selectOptionsHTML(UNIT_REPORTQC_OPTIONS, normalizeReportQC(d.report_qc))}</select></td>
+      <td><select class="inline-edit" data-field="status_jaringan">${selectOptionsHTML(UNIT_STATUSJARINGAN_OPTIONS, d.status_jaringan || 'All Provider')}</select></td>
       <td>${keterkaitanBadges(d)}</td>
       <td><input class="inline-edit" data-field="catatan" value="${escAttr(d.catatan)}"></td>
       <td><input class="inline-edit" type="number" min="0" step="1000" data-field="harga_beli" value="${d.harga_beli}"></td>
       <td><input class="inline-edit" type="number" min="0" step="1000" data-field="harga_jual" value="${d.harga_jual}"></td>
-      <td><div class="row-actions"><button type="button" onclick="openServiceTicketFromUnit('${d.imei}')" title="Buat tiket Unit Service dari unit ini">🛠️ Service</button><button type="button" onclick="openUnitModal('${d.id}')">Edit</button><button type="button" class="del" onclick="deleteUnitConfirm('${d.id}')">Hapus</button></div></td>
+      <td><div class="row-actions"><button type="button" onclick="openStickerFromUnit('${d.imei}')" title="Buat stiker barcode dari unit ini">🏷️ Stiker</button><button type="button" onclick="openServiceTicketFromUnit('${d.imei}')" title="Buat tiket Unit Service dari unit ini">🛠️ Service</button><button type="button" onclick="openUnitModal('${d.id}')">Edit</button><button type="button" class="del" onclick="deleteUnitConfirm('${d.id}')">Hapus</button></div></td>
     </tr>`;}).join('');
   document.getElementById('tableCount').textContent = `(${inventoryData.length} unit total)`;
 }
@@ -644,6 +665,7 @@ function openUnitModal(id){
     document.getElementById('unitFTglMasuk').value = d.tanggal_masuk;
     document.getElementById('unitFStatus').value = d.status;
     document.getElementById('unitFReportQc').value = d.report_qc;
+    document.getElementById('unitFStatusJaringan').value = d.status_jaringan || 'All Provider';
     document.getElementById('unitFTglTerjual').value = d.tanggal_terjual || '';
     document.getElementById('unitFHargaBeli').value = d.harga_beli;
     document.getElementById('unitFHargaJual').value = d.harga_jual;
@@ -659,6 +681,7 @@ function openUnitModal(id){
     document.getElementById('unitFTglMasuk').value = REF_TODAY_STR;
     document.getElementById('unitFStatus').value = 'Ready Stock';
     document.getElementById('unitFReportQc').value = 'Pending QC';
+    document.getElementById('unitFStatusJaringan').value = 'All Provider';
     document.getElementById('unitFTglTerjual').value = '';
     document.getElementById('unitFHargaBeli').value = '';
     document.getElementById('unitFHargaJual').value = '';
@@ -685,6 +708,7 @@ function saveUnitForm(){
   const tglMasuk = document.getElementById('unitFTglMasuk').value;
   const status = document.getElementById('unitFStatus').value;
   const reportQc = document.getElementById('unitFReportQc').value;
+  const statusJaringan = document.getElementById('unitFStatusJaringan').value;
   const tglTerjual = document.getElementById('unitFTglTerjual').value || null;
   const hargaBeli = parseFloat(document.getElementById('unitFHargaBeli').value) || 0;
   const hargaJual = parseFloat(document.getElementById('unitFHargaJual').value) || 0;
@@ -706,6 +730,7 @@ function saveUnitForm(){
     status, report_qc: reportQc, tanggal_terjual: status==='Terjual' ? tglTerjual : null,
     harga_beli: hargaBeli, harga_jual: hargaJual, catatan,
     alasan_flashsale: status==='Flash Sale' ? alasanFlashsale : null,
+    status_jaringan: statusJaringan,
   };
 
   if(id){

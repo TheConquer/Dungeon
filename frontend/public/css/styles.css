@@ -522,6 +522,9 @@
 #stkRoot .sticker .logo-badge{ position:absolute; top:3px; right:3px; width:22px; height:22px; border-radius:50%; object-fit:contain; }
 #stkRoot .sticker .model{ font-family:var(--mono); font-size:6.5px; font-weight:800; letter-spacing:-.01em; line-height:1.25; color:#141414; }
 #stkRoot .sticker .specs{ font-family:var(--mono); font-size:6.5px; color:#2f5c4e; line-height:1.25; font-weight:600; }
+#stkRoot .sticker .net-badge{ display:inline-block; width:fit-content; font-family:var(--mono); font-size:6px; font-weight:800; letter-spacing:.02em; padding:1px 4px; border-radius:3px; margin-top:1px; }
+#stkRoot .sticker .net-badge-bc{ background:#fde2e1; color:#b3402c; }
+#stkRoot .sticker .net-badge-wifi{ background:#dbeafe; color:#1d4ed8; }
 #stkRoot .sticker .barcode-row{ display:flex; justify-content:center; padding-left:5px; }
 #stkRoot .sticker svg{ width:100%; height:20px; display:block; }
 #stkRoot .sticker .footer{ display:flex; justify-content:space-between; align-items:baseline; padding-left:5px; padding-right:2px; border-top:1px solid #ececec; padding-top:3px; gap:10px; }
@@ -597,6 +600,7 @@
 #stkRoot .print-page .sticker .specs{ font-size:10.5px; }
 #stkRoot .print-page .sticker .imei-line{ font-size:10.5px; }
 #stkRoot .print-page .sticker .brandmark{ font-size:10.5px; }
+#stkRoot .print-page .sticker .net-badge{ font-size:8px; padding:0.3mm 1mm; }
 #stkRoot .print-page .sticker svg{ height:7.5mm; }
 #stkRoot .print-page .remove-btn{ display:none; }
 #stkRoot .print-page .badge-new{ display:none; }

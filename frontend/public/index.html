@@ -152,6 +152,7 @@
               <th data-key="hari_di_gudang">Hari</th>
               <th data-key="status">Status</th>
               <th data-key="report_qc">Report QC</th>
+              <th data-key="status_jaringan">Status Jaringan</th>
               <th>Keterkaitan</th>
               <th data-key="catatan">Catatan</th>
               <th data-key="harga_beli">Harga Beli</th>
@@ -1113,6 +1114,14 @@
         <label for="stk_tanggal">Tanggal Masuk</label>
         <input id="stk_tanggal" type="date">
       </div>
+      <div class="field">
+        <label for="stk_statusJaringan">Status Jaringan</label>
+        <select id="stk_statusJaringan">
+          <option value="All Provider">All Provider</option>
+          <option value="WiFi Only">WiFi Only</option>
+          <option value="Beacukai">Beacukai</option>
+        </select>
+      </div>
       <div class="actions">
         <button onclick="stkApp.addSingle()">+ Tambah ke Daftar</button>
       </div>
@@ -1121,13 +1130,13 @@
     <div class="panel hidden" id="stk_panelBatchImei">
       <p class="panel-title">Tempel Langsung dari Excel</p>
       <div class="field">
-        <label for="stk_batchInput">Blok 3 kolom di Excel (Nama, IMEI, Tanggal) lalu Ctrl+C, paste di sini</label>
-        <textarea id="stk_batchInput" placeholder="IPHONE 11 128GB BLACK	352977110326058	21-07-2026
-IPHONE 11 128GB GREEN	352975114409227	21-07-2026
-IPHONE 12 256GB WHITE	351166899859353	17-07-2026"></textarea>
+        <label for="stk_batchInput">Blok 3-4 kolom di Excel (Nama, IMEI, Tanggal, Status Jaringan) lalu Ctrl+C, paste di sini</label>
+        <textarea id="stk_batchInput" placeholder="IPHONE 11 128GB BLACK	352977110326058	21-07-2026	All Provider
+IPHONE 11 128GB GREEN	352975114409227	21-07-2026	Beacukai
+IPHONE 12 256GB WHITE	351166899859353	17-07-2026	WiFi Only"></textarea>
       </div>
       <div class="hint">
-        Tidak perlu header. Kolom dipisah otomatis — cocok untuk hasil <b>paste langsung dari Excel</b> (tab), atau tulis manual pakai <code>|</code>. Kolom ke-3 (tanggal) akan ditampilkan di stiker sebagai <b>tanggal masuk</b>. Model/Kapasitas/Warna otomatis dipisah dari nama produk (mis. "IPHONE 11 128GB BLACK" → Model: IPHONE 11, Kapasitas: 128GB, Warna: BLACK).
+        Tidak perlu header. Kolom dipisah otomatis — cocok untuk hasil <b>paste langsung dari Excel</b> (tab), atau tulis manual pakai <code>|</code>. Kolom ke-3 (tanggal) akan ditampilkan di stiker sebagai <b>tanggal masuk</b>. Kolom ke-4 (opsional): <b>Status Jaringan</b> — isi <code>All Provider</code>, <code>WiFi Only</code>, atau <code>Beacukai</code> (kosongkan = All Provider). Model/Kapasitas/Warna otomatis dipisah dari nama produk (mis. "IPHONE 11 128GB BLACK" → Model: IPHONE 11, Kapasitas: 128GB, Warna: BLACK).
       </div>
       <div class="imei-err" id="stk_batchErr"></div>
       <div class="actions">
@@ -1405,6 +1414,16 @@ IPHONE 11 128GB BLACK	352977110326058	CASING BAJAKAN	17-07-2026"></textarea>
         <div class="dash-field">
           <label>Tanggal Terjual</label>
           <input type="date" id="unitFTglTerjual">
+        </div>
+      </div>
+      <div class="dash-field-row">
+        <div class="dash-field">
+          <label>Status Jaringan</label>
+          <select id="unitFStatusJaringan">
+            <option value="All Provider">All Provider</option>
+            <option value="WiFi Only">WiFi Only</option>
+            <option value="Beacukai">Beacukai</option>
+          </select>
         </div>
       </div>
       <div class="dash-field-row">

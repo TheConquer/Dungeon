@@ -48,8 +48,21 @@ CREATE TABLE IF NOT EXISTS units (
   harga_beli NUMERIC(14,2) NOT NULL DEFAULT 0,
   harga_jual NUMERIC(14,2) NOT NULL DEFAULT 0,
   tanggal_terjual DATE,
-  alasan_flashsale TEXT
+  alasan_flashsale TEXT,
+  status_jaringan TEXT NOT NULL DEFAULT 'All Provider' CHECK (status_jaringan IN ('All Provider','WiFi Only','Beacukai'))
 );
+-- units sudah ada di database production sejak awal (CREATE TABLE IF NOT EXISTS di atas jadi
+-- no-op untuk database yang sudah ada) — kolom baru ini perlu ditambahkan lewat ALTER terpisah
+-- supaya ikut muncul juga di database yang sudah berjalan, bukan cuma database baru.
+ALTER TABLE units ADD COLUMN IF NOT EXISTS status_jaringan TEXT NOT NULL DEFAULT 'All Provider';
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'units_status_jaringan_check'
+  ) THEN
+    ALTER TABLE units ADD CONSTRAINT units_status_jaringan_check
+      CHECK (status_jaringan IN ('All Provider','WiFi Only','Beacukai'));
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_units_status ON units(status);
 CREATE INDEX IF NOT EXISTS idx_units_branch ON units(branch_id);
 CREATE INDEX IF NOT EXISTS idx_units_supplier ON units(supplier_id);

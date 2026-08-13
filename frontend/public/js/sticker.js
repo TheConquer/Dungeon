@@ -221,10 +221,18 @@ function formatTanggalShort(v){
   return `${parseInt(d,10)}/${parseInt(mo,10)}`;
 }
 
+const STATUS_JARINGAN_OPTIONS = ['All Provider', 'WiFi Only', 'Beacukai'];
+function normalizeStatusJaringan(v){
+  const clean = String(v || '').trim();
+  const hit = STATUS_JARINGAN_OPTIONS.find(o => o.toLowerCase() === clean.toLowerCase());
+  return hit || 'All Provider';
+}
+
 function addSingle(){
   const full = document.getElementById('stk_model').value.trim() || 'IPHONE';
   const imei = cleanImei(document.getElementById('stk_imei').value);
   const tanggal = formatTanggal(document.getElementById('stk_tanggal').value);
+  const statusJaringan = normalizeStatusJaringan(document.getElementById('stk_statusJaringan').value);
   const err = validateImei(imei);
   if(!err && imeiSet.has(imei)){
     document.getElementById('stk_imeiErr').textContent = 'IMEI ini sudah ada di daftar';
@@ -233,10 +241,22 @@ function addSingle(){
   document.getElementById('stk_imeiErr').textContent = err;
   if(err) return;
   const parsed = parseProductName(full);
-  items.push({ id: idCounter++, type: 'imei', ...parsed, imei, tanggal, batch: 'baru' });
+  items.push({ id: idCounter++, type: 'imei', ...parsed, imei, tanggal, statusJaringan, batch: 'baru' });
   imeiSet.add(imei);
   renderList();
   saveToStorage();
+}
+
+// Dipanggil dari tombol "🏷️ Stiker" di Data Unit (dashboard.js) — isi form Tambah Satu Unit
+// dengan data unit yang diklik, TANPA langsung menambahkan ke daftar (user tetap yang review
+// & klik "+ Tambah ke Daftar" sendiri). Pola sama seperti svcApp.openAddModalFromDashboard.
+function prefillFromUnit(data){
+  switchMode('imei'); // switchMode() sendiri sudah panggil switchTab('imei','single')
+  document.getElementById('stk_model').value = data.nama || '';
+  document.getElementById('stk_imei').value = data.imei || '';
+  if(data.tanggalMasuk) document.getElementById('stk_tanggal').value = data.tanggalMasuk;
+  document.getElementById('stk_statusJaringan').value = normalizeStatusJaringan(data.statusJaringan);
+  document.getElementById('stk_imeiErr').textContent = '';
 }
 
 function parseLine(line){
@@ -257,7 +277,7 @@ function addRows(rows, defaultBatch){
     if(validateImei(imei)){ skipped++; continue; }
     if(imeiSet.has(imei)){ duplicate++; continue; }
     const parsed = parseProductName(row.name || 'IPHONE');
-    items.push({ id: idCounter++, type: 'imei', ...parsed, imei, tanggal: (row.tanggal || '').trim(), batch: batchTag });
+    items.push({ id: idCounter++, type: 'imei', ...parsed, imei, tanggal: (row.tanggal || '').trim(), statusJaringan: normalizeStatusJaringan(row.statusJaringan), batch: batchTag });
     imeiSet.add(imei);
     added++;
   }
@@ -272,7 +292,7 @@ function addBatchFromTextarea(){
   for(const line of lines){
     const parts = parseLine(line);
     if(parts.length < 2){ malformed++; continue; }
-    rows.push({ name: parts[0], imei: parts[1], tanggal: parts[2] || '' });
+    rows.push({ name: parts[0], imei: parts[1], tanggal: parts[2] || '', statusJaringan: parts[3] || '' });
   }
   const { added, skipped, duplicate } = addRows(rows, 'baru');
   const parts2 = [];
@@ -447,6 +467,10 @@ function makeStickerNode(item, forPrint, doc){
 
   const el = doc.createElement('div');
   el.className = 'sticker';
+  const netStatus = normalizeStatusJaringan(item.statusJaringan);
+  const netBadge = netStatus !== 'All Provider'
+    ? `<div class="net-badge net-badge-${netStatus === 'Beacukai' ? 'bc' : 'wifi'}">${escapeHtml(netStatus)}</div>`
+    : '';
   el.innerHTML = `
     ${forPrint ? '' : `<button class="remove-btn" onclick="stkApp.removeItem(${item.id})">&times;</button>`}
     ${item.batch === 'baru' ? '<div class="badge-new">BARU</div>' : ''}
@@ -454,6 +478,7 @@ function makeStickerNode(item, forPrint, doc){
     <div class="top-row">
       <div class="model">${escapeHtml(item.model)}</div>
       <div class="specs">${escapeHtml([item.kap, item.warna].filter(Boolean).join(' · '))}</div>
+      ${netBadge}
     </div>
     <div class="barcode-row"><svg xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div class="footer">
@@ -769,7 +794,7 @@ function exportExcel(){
   const scopeItems = getPrintScopeItems();
   if(scopeItems.length === 0){ alert('Tidak ada data untuk diekspor pada cakupan ini.'); return; }
   const headerMap = {
-    imei: ['Model', 'Kapasitas', 'Warna', 'IMEI', 'Tanggal Masuk'],
+    imei: ['Model', 'Kapasitas', 'Warna', 'IMEI', 'Tanggal Masuk', 'Status Jaringan'],
     sparepart: ['Nama Sparepart', 'Kode/SKU', 'Tanggal Masuk'],
     flash: ['Nama Produk', 'IMEI', 'Minus/Kekurangan', 'Tanggal Masuk'],
   };
@@ -796,6 +821,7 @@ function exportExcel(){
         + `<td style="padding:4px 8px;">${escapeHtml(it.warna)}</td>`
         + `<td style="padding:4px 8px;mso-number-format:'\\@';">${escapeHtml(it.imei)}</td>`
         + `<td style="padding:4px 8px;mso-number-format:'\\@';">${escapeHtml(it.tanggal || '')}</td>`
+        + `<td style="padding:4px 8px;">${escapeHtml(normalizeStatusJaringan(it.statusJaringan))}</td>`
         + '</tr>';
     }
   }
@@ -839,6 +865,7 @@ bootstrapStiker();
 window.stkApp = {
   switchMode,
   switchTab,
+  prefillFromUnit,
   addSingle,
   addBatchFromTextarea,
   addSingleSparepart,
