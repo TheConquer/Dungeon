@@ -334,7 +334,7 @@ function renderDashboardUtama(){
 window.renderDashboardUtama = renderDashboardUtama;
 
 // ---------- Charts ----------
-Chart.defaults.color = '#8b93ab';
+Chart.defaults.color = '#6e6e73';
 Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto";
 const gridColor = 'rgba(139,147,171,.12)';
 
